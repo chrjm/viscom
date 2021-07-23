@@ -52,9 +52,12 @@ public:
 		pz.Create(this);
 		pz.SetOffset({ (float)-ScreenWidth() * 0.5f, (float)-ScreenHeight() * 0.5f });
 
-		terminals.push_back({ 1, { 25, 0 }, TRUE, 'S', 1 });
-		terminals.push_back({ 2, { -25, 0 }, FALSE, 'Z', 1 });
-
+		if (!componentBuilderMode)
+		{
+			terminals.push_back({ 1, { 25, 0 }, TRUE, 'S', 1 });
+			terminals.push_back({ 2, { -25, 0 }, FALSE, 'Z', 1 });
+		}
+		
 		return true;
 	}
 
@@ -101,7 +104,11 @@ public:
 		olc::vi2d sourceWorldPosition = { 0, 0 };
 		olc::vi2d sourceScreenPosition;
 		pz.WorldToScreen(sourceWorldPosition, sourceScreenPosition);
-		DrawSource(sourceScreenPosition);
+
+		if (!componentBuilderMode)
+			DrawSource(sourceScreenPosition);
+		else
+			DrawCircle(sourceScreenPosition, 2, olc::DARK_GREY);
 
 		// Draw mouse guides
 		DrawLine({ GetMouseX(), 0 }, { GetMouseX(), ScreenHeight() }, { 20, 20, 20 }, 0xF0F0F0F0);
@@ -266,6 +273,21 @@ public:
 			Save();
 			Load();
 		}
+
+		if (GetKey(olc::K1).bReleased)
+			PlaceModule("AND");
+
+		if (GetKey(olc::K2).bReleased)
+			PlaceModule("OR");
+
+		if (GetKey(olc::K3).bReleased)
+			PlaceModule("NAND");
+
+		if (GetKey(olc::K4).bReleased)
+			PlaceModule("XOR");
+
+		if (GetKey(olc::K5).bReleased)
+			PlaceModule("ADDER");
 		
 		if (GetMouse(1).bReleased)
 		{
@@ -474,6 +496,7 @@ private:
 		"LED",
 	};
 	bool updateSimulation = FALSE;
+	bool componentBuilderMode = FALSE;
 
 	void Save()
 	{
@@ -518,9 +541,100 @@ private:
 		}
 	}
 
+	void PlaceModule(std::string module_name)
+	{
+		std::string filepath = "modules/" + module_name + "_";
+
+		std::ifstream componentsFile(filepath + "components.txt");
+		std::string rawId;
+		std::string rawType;
+		std::string rawPosX;
+		std::string rawPosY;
+		int lastComponentIdOffset = 0;
+
+		while (std::getline(componentsFile, rawId, ','))
+		{
+			std::getline(componentsFile, rawType, ',');
+			std::getline(componentsFile, rawPosX, ',');
+			std::getline(componentsFile, rawPosY, '\n');
+
+			components.push_back({ stoi(rawId) + lastComponentId, rawType, olc::vi2d(stoi(rawPosX), stoi(rawPosY)) + GetWorldMouse() });
+			lastComponentIdOffset = stoi(rawId);
+		}
+
+		std::ifstream connectionsFile(filepath + "connections.txt");
+		std::string rawConnectionId;
+		std::string rawTerminalA;
+		std::string rawTerminalB;
+		std::string rawTerminalAPosX;
+		std::string rawTerminalAPosY;
+		std::string rawTerminalBPosX;
+		std::string rawTerminalBPosY;
+		std::string rawNotOutTerminal;
+		int lastConnectionIdOffset = 0;
+
+		while (std::getline(connectionsFile, rawConnectionId, ','))
+		{
+			std::getline(connectionsFile, rawTerminalA, ',');
+			std::getline(connectionsFile, rawTerminalB, ',');
+			std::getline(connectionsFile, rawTerminalAPosX, ',');
+			std::getline(connectionsFile, rawTerminalAPosY, ',');
+			std::getline(connectionsFile, rawTerminalBPosX, ',');
+			std::getline(connectionsFile, rawTerminalBPosY, ',');
+			std::getline(connectionsFile, rawNotOutTerminal, '\n');
+
+			connections.push_back({
+				stoi(rawConnectionId) + lastConnectionId,
+				stoi(rawTerminalA) + lastTerminalId,
+				stoi(rawTerminalB) + lastTerminalId,
+				olc::vi2d(stoi(rawTerminalAPosX), stoi(rawTerminalAPosY)) + GetWorldMouse(),
+				olc::vi2d(stoi(rawTerminalBPosX), stoi(rawTerminalBPosY)) + GetWorldMouse(),
+				stoi(rawNotOutTerminal) + lastTerminalId
+				});
+
+			lastConnectionIdOffset = stoi(rawConnectionId);
+		}
+
+		std::ifstream terminalsFile(filepath + "terminals.txt");
+		std::string rawTerminalId;
+		std::string rawTerminalPosX;
+		std::string rawTerminalPosY;
+		std::string rawTerminalType;
+		std::string rawTerminalComponentId;
+		int lastTerminalIdOffset = 0;
+
+		while (std::getline(terminalsFile, rawTerminalId, ','))
+		{
+			std::getline(terminalsFile, rawTerminalPosX, ',');
+			std::getline(terminalsFile, rawTerminalPosY, ',');
+			std::getline(terminalsFile, rawTerminalType, ',');
+			std::getline(terminalsFile, rawTerminalComponentId, '\n');
+
+			terminals.push_back({
+				stoi(rawTerminalId) + lastTerminalId,
+				olc::vi2d(stoi(rawTerminalPosX), stoi(rawTerminalPosY)) + GetWorldMouse(),
+				FALSE,
+				rawTerminalType[0],
+				stoi(rawTerminalComponentId) + lastComponentId,
+				});
+
+			std::cout << stoi(rawTerminalId) + lastTerminalId << ", ";
+
+			lastTerminalIdOffset = stoi(rawTerminalId);
+		}
+
+		std::cout << std::endl;
+
+		lastComponentId += lastComponentIdOffset + 1;
+		lastConnectionId += lastConnectionIdOffset + 1;
+		lastTerminalId += lastTerminalIdOffset + 1;
+
+		std::cout << "lastTerminalId: " << lastTerminalId << std::endl;
+	}
+
 	void Load()
 	{
-		std::string load_timestamp = "1626788462";
+		std::string load_timestamp = "1626894988";
 		std::string filepath = "saves/" + load_timestamp + "_";
 		std::ifstream globalsFile(filepath + "globals.txt");
 
