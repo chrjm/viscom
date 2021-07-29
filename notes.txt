@@ -1,0 +1,4 @@
+Try creating a simulated register component
+to test feasibility of CPU design before going into
+the whole process of working out the best way to
+get a register component "really working".

@@ -13,8 +13,10 @@ struct Terminal
 	int id;
 	olc::vi2d pos;
 	bool state = FALSE;
-	char type; // S = source start, Z = source end, C = collector, B = base, E = emitter, N = not out,
-	           // U = buffer
+	char type; // S = source start, Z = source end, // U = buffer,
+	           // transistor: C = collector, B = base, E = emitter, N = not out
+	           // gated latch: D = data in, W = write enable, Q = data out
+	           
 
 	int componentId;
 };
@@ -63,21 +65,51 @@ public:
 
 	bool OnUserUpdate(float fElapsedTime) override
 	{
-		Clear(olc::BLACK);
+		if (GetKey(olc::P).bReleased)
+		{
+			if (!simulationPaused)
+				simulationPaused = TRUE;
+			else
+				simulationPaused = FALSE;
+
+			redrawRequired = TRUE;
+		}
+
 
 		if (GetMouseWheel() > 0)
+		{
 			pz.ZoomIn(1.1f);
-		if (GetMouseWheel() < 0)
-			pz.ZoomOut(0.9f);
-		if (GetKey(olc::Z).bReleased)
-			pz.SetScale( { 1.0f, 1.0f } );
+			redrawRequired = TRUE;
+		}
 			
-
+		if (GetMouseWheel() < 0)
+		{
+			pz.ZoomOut(0.9f);
+			redrawRequired = TRUE;
+		}
+			
+		if (GetKey(olc::Z).bReleased)
+		{
+			pz.SetScale({ 1.0f, 1.0f });
+			redrawRequired = TRUE;
+		}
+			
 		// Pan
+		if (GetMouse(2).bHeld)
+			redrawRequired = TRUE;
+
 		if (GetMouse(2).bPressed)
 			pz.StartPan();
+			
 		if (GetMouse(2).bReleased)
 			pz.StopPan();
+
+		// Draw mouse guides
+		if (GetKey(olc::X).bHeld || GetKey(olc::X).bReleased)
+		{
+			redrawRequired = TRUE;
+		}
+		
 
 		pz.Update(fElapsedTime);
 
@@ -104,34 +136,26 @@ public:
 		olc::vi2d sourceWorldPosition = { 0, 0 };
 		olc::vi2d sourceScreenPosition;
 		pz.WorldToScreen(sourceWorldPosition, sourceScreenPosition);
-
-		if (!componentBuilderMode)
-			DrawSource(sourceScreenPosition);
-		else
-			DrawCircle(sourceScreenPosition, 2, olc::DARK_GREY);
-
-		// Draw mouse guides
-		DrawLine({ GetMouseX(), 0 }, { GetMouseX(), ScreenHeight() }, { 20, 20, 20 }, 0xF0F0F0F0);
-		DrawLine({ 0, GetMouseY() }, { ScreenWidth(), GetMouseY() }, { 20, 20, 20 }, 0xF0F0F0F0);
 		
 		// --------------------
 		// Run Logic Simulation
 
-		if (updateSimulation)
+		if (updateSimulation && !simulationPaused)
 		{
+			redrawRequired = TRUE;
+
 			for (auto &connection : connections)
 				connection.state = FALSE;
 
 			for (auto &terminal : terminals)
-				if (terminal.type != 'S')
+				if (terminal.type != 'S' && terminal.type != 'Q')
 				{
 					terminal.state = FALSE;
 				}
 				
 
-			bool finishedSimulation = FALSE;
-
 			std::vector<int> transistorsToSimulate;
+			std::vector<int> gatedLatchesToSimulate;
 			std::vector<Terminal*> activeTerminals;
 			std::vector<Connection*> activeConnections;
 
@@ -146,19 +170,32 @@ public:
 					currentTerminalB->state = TRUE;
 
 					if (currentTerminalB->type == 'U')
+					{
 						activeTerminals.push_back(currentTerminalB);
-					else
+					}
+					else if (currentTerminalB->type == 'C' || currentTerminalB->type == 'E' || currentTerminalB->type == 'B')
+					{
 						transistorsToSimulate.push_back(currentTerminalB->componentId);
+					}
+					else if (currentTerminalB->type == 'D' || currentTerminalB->type == 'W' || currentTerminalB->type == 'Q')
+					{
+						gatedLatchesToSimulate.push_back(currentTerminalB->componentId);
+					}
+						
 				}
 			}
 
-			while (transistorsToSimulate.size() || activeTerminals.size())
+			bool forceLeave = FALSE;
+			std::vector<int> visitedTerminals;
+			int highestFound = 0;
+
+			while ((transistorsToSimulate.size() || gatedLatchesToSimulate.size() || activeTerminals.size()) && !forceLeave)
 			{
 				for (auto transistorId : transistorsToSimulate)
 				{
-					Terminal* thisNotOut = findTerminalByTransistor(transistorId, 'N');
-					Terminal* thisEmitter = findTerminalByTransistor(transistorId, 'E');
-					
+					Terminal* thisNotOut = findTerminalByComponent(transistorId, 'N');
+					Terminal* thisEmitter = findTerminalByComponent(transistorId, 'E');
+
 					if (thisNotOut)
 					{
 						thisNotOut->state = FALSE;
@@ -182,8 +219,52 @@ public:
 
 				transistorsToSimulate.clear();
 
+				for (auto gatedLatchId : gatedLatchesToSimulate)
+				{
+					Terminal* thisDataOut = findTerminalByComponent(gatedLatchId, 'Q');
+
+					bool originalDataOutState = FALSE;
+					if (thisDataOut->state)
+						originalDataOutState = TRUE;
+
+					simulateGatedLatch(gatedLatchId);
+
+					if (originalDataOutState != thisDataOut->state)
+					{
+						activeTerminals.push_back(thisDataOut);
+					}
+				}
+
+				gatedLatchesToSimulate.clear();
+
 				for (auto terminal : activeTerminals)
 				{
+
+					// std::cout << "Visiting terminal with id: " << terminal->id << std::endl;
+
+					int alreadyVisitedCount = 0;
+					for (auto visitedTerminalId : visitedTerminals)
+					{
+						if (visitedTerminalId == terminal->id)
+							alreadyVisitedCount += 1;
+					}
+
+
+					/*if (alreadyVisitedCount > 0)
+						std::cout << "Already visited! This many times: " << alreadyVisitedCount << std::endl;
+					else
+						print("Not already visited...");*/
+
+					visitedTerminals.push_back(terminal->id);
+
+					if (alreadyVisitedCount > highestFound)
+						highestFound = alreadyVisitedCount;
+
+					if (alreadyVisitedCount > 1200)
+					{
+						forceLeave = TRUE;
+					}
+
 					for (auto& connection : connections)
 					{
 						if (connection.terminalA == terminal->id)
@@ -206,8 +287,10 @@ public:
 
 						if (currentTerminalB->type == 'U')
 							activeTerminals.push_back(currentTerminalB);
-						else
+						else if (currentTerminalB->type == 'B' || currentTerminalB->type == 'C' || currentTerminalB->type == 'E')
 							transistorsToSimulate.push_back(currentTerminalB->componentId);
+						else if (currentTerminalB->type == 'D' || currentTerminalB->type == 'W' || currentTerminalB->type == 'Q')
+							gatedLatchesToSimulate.push_back(currentTerminalB->componentId);
 					}
 				}
 
@@ -229,15 +312,17 @@ public:
 			}
 
 			updateSimulation = FALSE;
+
+			std::cout << "Highest terminal visit count: " << highestFound << std::endl;
 		}
 
 		//---------------------
 		
 		if (GetMouse(0).bReleased)
 		{
-			components.push_back({ lastComponentId, inventoryItems[activeInventoryItem], GetWorldMouse() });
+			components.push_back({ lastComponentId, inventoryComponents[activeInventoryItem], GetWorldMouse() });
 			
-			if (inventoryItems[activeInventoryItem] == "TRANSISTOR")
+			if (inventoryComponents[activeInventoryItem] == "TRANSISTOR")
 			{
 				terminals.push_back({ lastTerminalId, GetWorldMouse() + olc::vi2d(25, -25), FALSE, 'C', lastComponentId });
 				lastTerminalId++;
@@ -247,23 +332,39 @@ public:
 				lastTerminalId++;
 			}
 
-			if (inventoryItems[activeInventoryItem] == "BUFFER")
+			if (inventoryComponents[activeInventoryItem] == "GATED LATCH")
+			{
+				terminals.push_back({ lastTerminalId, GetWorldMouse() + olc::vi2d(-25, -25), FALSE, 'D', lastComponentId });
+				lastTerminalId++;
+				terminals.push_back({ lastTerminalId, GetWorldMouse() + olc::vi2d(-25, 25), FALSE, 'W', lastComponentId });
+				lastTerminalId++;
+				terminals.push_back({ lastTerminalId, GetWorldMouse() + olc::vi2d(25, 0), FALSE, 'Q', lastComponentId });
+				lastTerminalId++;
+			}
+
+			if (inventoryComponents[activeInventoryItem] == "BUFFER")
 			{
 				terminals.push_back({ lastTerminalId, GetWorldMouse(), FALSE, 'U', lastComponentId });
 				lastTerminalId++;
 			}
 
-			if (inventoryItems[activeInventoryItem] == "LED")
+			if (inventoryComponents[activeInventoryItem] == "LED")
 			{
 				terminals.push_back({ lastTerminalId, GetWorldMouse(), FALSE, 'U', lastComponentId });
 				lastTerminalId++;
 			}
 
 			lastComponentId++;
+
+			redrawRequired = TRUE;
 		}
 
 		if (GetKey(olc::DEL).bReleased)
+		{
 			deleteClosest();
+			redrawRequired = TRUE;
+		}
+			
 
 		if (GetKey(olc::S).bReleased)
 			Save();
@@ -272,23 +373,58 @@ public:
 		{
 			Save();
 			Load();
+			redrawRequired = TRUE;
 		}
 
 		if (GetKey(olc::K1).bReleased)
+		{
+			redrawRequired = TRUE;
 			PlaceModule("AND");
+		}
+			
 
 		if (GetKey(olc::K2).bReleased)
+		{
+			redrawRequired = TRUE;
 			PlaceModule("OR");
+		}
 
 		if (GetKey(olc::K3).bReleased)
+		{
+			redrawRequired = TRUE;
 			PlaceModule("NAND");
+		}
 
 		if (GetKey(olc::K4).bReleased)
+		{
+			redrawRequired = TRUE;
 			PlaceModule("XOR");
+		}
 
 		if (GetKey(olc::K5).bReleased)
+		{
+			redrawRequired = TRUE;
 			PlaceModule("ADDER");
-		
+		}
+
+		if (GetKey(olc::K6).bReleased)
+		{
+			redrawRequired = TRUE;
+			PlaceModule("REG");
+		}
+
+		if (GetKey(olc::K7).bReleased)
+		{
+			redrawRequired = TRUE;
+			PlaceModule("REGBUS");
+		}
+
+		if (GetKey(olc::K8).bReleased)
+		{
+			redrawRequired = TRUE;
+			PlaceModule("REGS");
+		}
+
 		if (GetMouse(1).bReleased)
 		{
 			bool needsNotOut = FALSE;
@@ -306,7 +442,7 @@ public:
 
 					if (distance < smallestDistance || smallestDistance == 0.00)
 					{
-						if (terminal.type == 'S' || terminal.type == 'E' || terminal.type == 'N' || terminal.type == 'U')
+						if (terminal.type == 'S' || terminal.type == 'E' || terminal.type == 'N' || terminal.type == 'U' || terminal.type == 'Q')
 						{
 							smallestDistance = distance;
 							closestTerminalId = terminal.id;
@@ -333,7 +469,7 @@ public:
 
 					if (distance < smallestDistance || smallestDistance == 0.00)
 					{
-						if (terminal.type == 'C' || terminal.type == 'B' || terminal.type == 'Z' || terminal.type == 'U')
+						if (terminal.type == 'C' || terminal.type == 'B' || terminal.type == 'Z' || terminal.type == 'U' || terminal.type == 'D' || terminal.type == 'W')
 						{
 							smallestDistance = distance;
 							closestTerminalId = terminal.id;
@@ -396,83 +532,42 @@ public:
 				selectedTerminalAPos = olc::vi2d(0, 0);
 				selectedTerminalBPos = olc::vi2d(0, 0);
 			}
+
+			redrawRequired = TRUE;
 		}
 		
 		if (GetKey(olc::Key::SPACE).bReleased)
 		{
-			if (activeInventoryItem < (int) inventoryItems.size() - 1)
+			if (activeInventoryItem < (int) inventoryComponents.size() - 1)
 				activeInventoryItem++;
 			else
 				activeInventoryItem = 0;
+
+			redrawRequired = TRUE;
 		}
 
-		for (auto component : components)
+		if (redrawRequired)
 		{
-			olc::vi2d componentWorldPos = component.pos;
-			olc::vi2d componentScreenPos;
-			pz.WorldToScreen(componentWorldPos, componentScreenPos);
+			Clear(olc::BLACK);
 
-			if (component.type == "TRANSISTOR")
-				DrawTransistor(componentScreenPos);
+			if (!componentBuilderMode)
+				DrawSource(sourceScreenPosition);
+			else
+				DrawCircle(sourceScreenPosition, 2, olc::DARK_GREY);
 
-			if (component.type == "LED")
+			if (GetKey(olc::X).bHeld)
 			{
-				olc::Pixel ledColour = olc::GREY;
-
-				for (auto terminal : terminals)
-				{
-					if (terminal.componentId == component.id && terminal.state)
-					{
-						ledColour = olc::GREEN;
-						break;
-					}						
-				}
-
-				DrawLed(componentScreenPos, ledColour);
+				DrawLine({ GetMouseX(), 0 }, { GetMouseX(), ScreenHeight() }, { 64, 64, 64 }, 0xF0F0F0F0);
+				DrawLine({ 0, GetMouseY() }, { ScreenWidth(), GetMouseY() }, { 64, 64, 64 }, 0xF0F0F0F0);
 			}
-		}
-
-		for (auto connection : connections)
-		{
-			olc::Pixel colour = olc::DARK_GREY;
-			olc::vi2d terminalAWorldPos = connection.terminalAPos;
-			olc::vi2d terminalAScreenPos;
-			pz.WorldToScreen(terminalAWorldPos, terminalAScreenPos);
-			olc::vi2d terminalBWorldPos = connection.terminalBPos;
-			olc::vi2d terminalBScreenPos;
-			pz.WorldToScreen(terminalBWorldPos, terminalBScreenPos);
 			
-
-			if (connection.state)
-				colour = olc::GREEN;
-
-			DrawLine(terminalAScreenPos, terminalBScreenPos, colour);
+			DrawComponents();
+			DrawConnections();
+			DrawTerminals();
+			DrawStrings();
+			redrawRequired = FALSE;
 		}
-
 		
-		for (auto terminal : terminals)
-		{
-			olc::vi2d terminalWorldPos = terminal.pos;
-			olc::vi2d terminalScreenPos;
-
-			pz.WorldToScreen(terminalWorldPos, terminalScreenPos);
-
-			olc::Pixel colour = olc::WHITE;
-
-			if (terminal.state)
-				colour = olc::GREEN;
-
-			if (selectedTerminalA == terminal.id || selectedTerminalB == terminal.id)
-				colour = olc::MAGENTA;
-			
-			DrawTerminal(terminalScreenPos, colour);
-		}
-
-		std::string offsetString = std::to_string(int(pz.GetOffset().x)) + ", " + std::to_string(int(pz.GetOffset().y));
-		
-		DrawString(olc::vi2d(50, 50), inventoryItems[activeInventoryItem], olc::GREEN);
-		DrawString(olc::vi2d(50, 70), offsetString, olc::DARK_GREY);
-
 		return !(GetKey(olc::ESCAPE).bPressed);
 	}
 
@@ -490,13 +585,16 @@ private:
 	olc::vi2d selectedTerminalAPos;
 	olc::vi2d selectedTerminalBPos;
 	int activeInventoryItem = 0;
-	std::vector<std::string> inventoryItems = {
+	std::vector<std::string> inventoryComponents = {
+		"GATED LATCH",
 		"TRANSISTOR",
 		"BUFFER",
 		"LED",
 	};
+	bool simulationPaused = FALSE;
 	bool updateSimulation = FALSE;
 	bool componentBuilderMode = FALSE;
+	bool redrawRequired = TRUE;
 
 	void Save()
 	{
@@ -634,7 +732,7 @@ private:
 
 	void Load()
 	{
-		std::string load_timestamp = "1626894988";
+		std::string load_timestamp = "1627515803";
 		std::string filepath = "saves/" + load_timestamp + "_";
 		std::ifstream globalsFile(filepath + "globals.txt");
 
@@ -739,6 +837,108 @@ private:
 		updateSimulation = TRUE;
 	}
 
+	void DrawComponents()
+	{
+		for (auto component : components)
+		{
+			olc::vi2d componentWorldPos = component.pos;
+			olc::vi2d componentScreenPos;
+			pz.WorldToScreen(componentWorldPos, componentScreenPos);
+
+			if (component.type == "TRANSISTOR")
+				DrawTransistor(componentScreenPos);
+
+			if (component.type == "GATED LATCH")
+			{
+				DrawGatedLatch(componentScreenPos);
+
+
+				olc::Pixel ledColour = olc::GREY;
+
+				for (auto terminal : terminals)
+				{
+					if (terminal.componentId == component.id && terminal.type == 'Q' && terminal.state)
+					{
+						ledColour = olc::GREEN;
+						break;
+					}
+				}
+
+				DrawLed(componentScreenPos, ledColour);
+			}
+				
+
+			if (component.type == "LED")
+			{
+				olc::Pixel ledColour = olc::GREY;
+
+				for (auto terminal : terminals)
+				{
+					if (terminal.componentId == component.id && terminal.state)
+					{
+						ledColour = olc::GREEN;
+						break;
+					}
+				}
+
+				DrawLed(componentScreenPos, ledColour);
+			}
+		}
+	}
+
+	void DrawConnections()
+	{
+		for (auto connection : connections)
+		{
+			olc::Pixel colour = olc::DARK_GREY;
+			olc::vi2d terminalAWorldPos = connection.terminalAPos;
+			olc::vi2d terminalAScreenPos;
+			pz.WorldToScreen(terminalAWorldPos, terminalAScreenPos);
+			olc::vi2d terminalBWorldPos = connection.terminalBPos;
+			olc::vi2d terminalBScreenPos;
+			pz.WorldToScreen(terminalBWorldPos, terminalBScreenPos);
+
+
+			if (connection.state)
+				colour = olc::GREEN;
+
+			DrawLine(terminalAScreenPos, terminalBScreenPos, colour);
+		}
+	}
+
+	void DrawTerminals()
+	{
+		for (auto terminal : terminals)
+		{
+			olc::vi2d terminalWorldPos = terminal.pos;
+			olc::vi2d terminalScreenPos;
+
+			pz.WorldToScreen(terminalWorldPos, terminalScreenPos);
+
+			olc::Pixel colour = olc::WHITE;
+
+			if (terminal.state)
+				colour = olc::GREEN;
+
+			if (selectedTerminalA == terminal.id || selectedTerminalB == terminal.id)
+				colour = olc::MAGENTA;
+
+			DrawTerminal(terminalScreenPos, colour);
+		}
+	}
+
+	void DrawStrings()
+	{
+		std::string offsetString = std::to_string(int(pz.GetOffset().x)) + ", " + std::to_string(int(pz.GetOffset().y));
+
+		DrawString(olc::vi2d(50, 50), inventoryComponents[activeInventoryItem], olc::GREEN);
+		DrawString(olc::vi2d(50, 70), offsetString, olc::DARK_GREY);
+
+		if (simulationPaused)
+			DrawString(olc::vi2d(50, 90), "PAUSED", olc::RED);
+	}
+
+
 	void DrawTransistor(olc::vi2d pos)
 	{
 		int size = 25;
@@ -746,6 +946,11 @@ private:
 		DrawLine(pos, pos + olc::vi2d(-size, 0), olc::GREEN);
 		DrawLine(pos + olc::vi2d(0, -size / 2), pos + olc::vi2d(size, -size), olc::GREEN);
 		DrawLine(pos + olc::vi2d(0, size / 2), pos + olc::vi2d(size, size), olc::GREEN);
+	}
+
+	void DrawGatedLatch(olc::vi2d pos)
+	{
+		DrawRect(pos + olc::vi2d(-25, -25), { 50, 50 }, olc::GREEN);
 	}
 
 	void DrawSource(olc::vi2d pos)
@@ -804,11 +1009,11 @@ private:
 		return nullptr;
 	}
 
-	Terminal* findTerminalByTransistor(int transistorId, char terminalType)
+	Terminal* findTerminalByComponent(int componentId, char terminalType)
 	{
 		for (auto& terminal : terminals)
 		{
-			if (terminal.componentId == transistorId && terminal.type == terminalType)
+			if (terminal.componentId == componentId && terminal.type == terminalType)
 				return &terminal;
 		}
 
@@ -866,6 +1071,50 @@ private:
 		return nullptr;
 	}
 
+	void simulateGatedLatch(int id)
+	{
+		// gated latch: D = data in, W = write enable, Q = data out
+
+		print("Simulating gated latch...");
+
+		bool dataInState = FALSE;
+		bool writeEnableState = FALSE;
+		bool dataInFound = FALSE;
+		bool writeEnableFound = FALSE;
+		
+		Terminal* dataOutTerminal = nullptr;
+
+		for (auto& terminal : terminals)
+		{
+			if (terminal.componentId == id && terminal.type == 'D')
+			{
+				dataInFound = TRUE;
+
+				if (terminal.state)
+					dataInState = TRUE;
+			}
+
+			if (terminal.componentId == id && terminal.type == 'W')
+			{
+				writeEnableFound = TRUE;
+
+				if (terminal.state)
+					writeEnableState = TRUE;
+			}
+
+			if (terminal.componentId == id && terminal.type == 'Q')
+				dataOutTerminal = &terminal;
+
+			if (dataInFound && writeEnableFound && dataOutTerminal)
+				break;
+		}
+
+		if (dataOutTerminal && writeEnableState)
+		{
+			dataOutTerminal->state = dataInState;
+		}
+	}
+
 	void updateSourceConnections()
 	{
 		sourceConnections.clear();
@@ -874,6 +1123,11 @@ private:
 		{
 			if (connection.terminalA == 1)
 				sourceConnections.push_back(&connection);
+			else
+			{
+				if (findTerminal(connection.terminalA)->type == 'Q' && findTerminal(connection.terminalA)->state)
+					sourceConnections.push_back(&connection);
+			}
 		}
 	}
 
@@ -1041,7 +1295,7 @@ private:
 int main()
 {
 	Viscom vc;
-	if (vc.Construct(1680, 800, 1, 1))
+	if (vc.Construct(1600, 800, 1, 1))
 		vc.Start();
 
 	return 0;
