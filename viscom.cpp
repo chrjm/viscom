@@ -13,7 +13,7 @@ struct Terminal
 	int id;
 	olc::vi2d pos;
 	bool state = FALSE;
-	char type; // S = source start, Z = source end, // U = buffer,
+	char type; // S = source start, Z = source end, L = clock, U = buffer,, 
 	           // transistor: C = collector, B = base, E = emitter, N = not out
 	           // gated latch: D = data in, W = write enable, Q = data out
 	           
@@ -59,6 +59,8 @@ public:
 			terminals.push_back({ 1, { 25, 0 }, TRUE, 'S', 1 });
 			terminals.push_back({ 2, { -25, 0 }, FALSE, 'Z', 1 });
 		}
+
+		terminals.push_back({ 3, { -200, 0 }, FALSE, 'L', 1 });
 		
 		return true;
 	}
@@ -73,6 +75,23 @@ public:
 				simulationPaused = FALSE;
 
 			redrawRequired = TRUE;
+		}
+
+		simulateClock();
+
+		if (GetKey(olc::Key::UP).bReleased)
+		{
+			clockSpeed++;
+			redrawRequired = TRUE;
+		}
+
+		if (GetKey(olc::Key::DOWN).bReleased)
+		{
+			if (clockSpeed > 0)
+			{
+				clockSpeed--;
+				redrawRequired = TRUE;
+			}
 		}
 
 
@@ -126,16 +145,12 @@ public:
 			selectedTerminalB = 0;
 			selectedTerminalAPos = { 0, 0 };
 			selectedTerminalBPos = { 0, 0 };
-			activeInventoryItem = 0;
+			activeInventoryComponent = 0;
 			updateSimulation = FALSE;
 
 			terminals.push_back({ 1, olc::vi2d(500 + 25, 50), TRUE, 'S', 1 });
 			terminals.push_back({ 2, olc::vi2d(500 - 25, 50), FALSE, 'Z', 1 });
 		}*/
-
-		olc::vi2d sourceWorldPosition = { 0, 0 };
-		olc::vi2d sourceScreenPosition;
-		pz.WorldToScreen(sourceWorldPosition, sourceScreenPosition);
 		
 		// --------------------
 		// Run Logic Simulation
@@ -152,7 +167,12 @@ public:
 				{
 					terminal.state = FALSE;
 				}
-				
+
+			for (auto& terminal : terminals)
+			{
+				if (terminal.type == 'L')
+					terminal.state = clockState;
+			}				
 
 			std::vector<int> transistorsToSimulate;
 			std::vector<int> gatedLatchesToSimulate;
@@ -161,13 +181,17 @@ public:
 
 			for (auto currentConnection : sourceConnections)
 			{
-				currentConnection->state = TRUE;
+				if (currentConnection->terminalA == 1)
+					currentConnection->state = TRUE;
+
+				if (currentConnection->terminalA == 3)
+					currentConnection->state = clockState;
 
 				Terminal* currentTerminalB = findTerminal(currentConnection->terminalB);
 
 				if (currentTerminalB)
 				{
-					currentTerminalB->state = TRUE;
+					currentTerminalB->state = currentConnection->state;
 
 					if (currentTerminalB->type == 'U')
 					{
@@ -320,41 +344,49 @@ public:
 		
 		if (GetMouse(0).bReleased)
 		{
-			components.push_back({ lastComponentId, inventoryComponents[activeInventoryItem], GetWorldMouse() });
+			if (!placingModule)
+			{
+				components.push_back({ lastComponentId, inventoryComponents[activeInventoryComponent], GetWorldMouse() });
+
+				if (inventoryComponents[activeInventoryComponent] == "TRANSISTOR")
+				{
+					terminals.push_back({ lastTerminalId, GetWorldMouse() + olc::vi2d(25, -25), FALSE, 'C', lastComponentId });
+					lastTerminalId++;
+					terminals.push_back({ lastTerminalId, GetWorldMouse() + olc::vi2d(-25, 0), FALSE, 'B', lastComponentId });
+					lastTerminalId++;
+					terminals.push_back({ lastTerminalId, GetWorldMouse() + olc::vi2d(25, 25), FALSE, 'E', lastComponentId });
+					lastTerminalId++;
+				}
+
+				if (inventoryComponents[activeInventoryComponent] == "GATED LATCH")
+				{
+					terminals.push_back({ lastTerminalId, GetWorldMouse() + olc::vi2d(-25, -25), FALSE, 'D', lastComponentId });
+					lastTerminalId++;
+					terminals.push_back({ lastTerminalId, GetWorldMouse() + olc::vi2d(-25, 25), FALSE, 'W', lastComponentId });
+					lastTerminalId++;
+					terminals.push_back({ lastTerminalId, GetWorldMouse() + olc::vi2d(25, 0), FALSE, 'Q', lastComponentId });
+					lastTerminalId++;
+				}
+
+				if (inventoryComponents[activeInventoryComponent] == "BUFFER")
+				{
+					terminals.push_back({ lastTerminalId, GetWorldMouse(), FALSE, 'U', lastComponentId });
+					lastTerminalId++;
+				}
+
+				if (inventoryComponents[activeInventoryComponent] == "LED")
+				{
+					terminals.push_back({ lastTerminalId, GetWorldMouse(), FALSE, 'U', lastComponentId });
+					lastTerminalId++;
+				}
+
+				lastComponentId++;
+			}
+			else
+			{
+				PlaceModule(inventoryModules[activeInventoryModule]);
+			}
 			
-			if (inventoryComponents[activeInventoryItem] == "TRANSISTOR")
-			{
-				terminals.push_back({ lastTerminalId, GetWorldMouse() + olc::vi2d(25, -25), FALSE, 'C', lastComponentId });
-				lastTerminalId++;
-				terminals.push_back({ lastTerminalId, GetWorldMouse() + olc::vi2d(-25, 0), FALSE, 'B', lastComponentId });
-				lastTerminalId++;
-				terminals.push_back({ lastTerminalId, GetWorldMouse() + olc::vi2d(25, 25), FALSE, 'E', lastComponentId });
-				lastTerminalId++;
-			}
-
-			if (inventoryComponents[activeInventoryItem] == "GATED LATCH")
-			{
-				terminals.push_back({ lastTerminalId, GetWorldMouse() + olc::vi2d(-25, -25), FALSE, 'D', lastComponentId });
-				lastTerminalId++;
-				terminals.push_back({ lastTerminalId, GetWorldMouse() + olc::vi2d(-25, 25), FALSE, 'W', lastComponentId });
-				lastTerminalId++;
-				terminals.push_back({ lastTerminalId, GetWorldMouse() + olc::vi2d(25, 0), FALSE, 'Q', lastComponentId });
-				lastTerminalId++;
-			}
-
-			if (inventoryComponents[activeInventoryItem] == "BUFFER")
-			{
-				terminals.push_back({ lastTerminalId, GetWorldMouse(), FALSE, 'U', lastComponentId });
-				lastTerminalId++;
-			}
-
-			if (inventoryComponents[activeInventoryItem] == "LED")
-			{
-				terminals.push_back({ lastTerminalId, GetWorldMouse(), FALSE, 'U', lastComponentId });
-				lastTerminalId++;
-			}
-
-			lastComponentId++;
 
 			redrawRequired = TRUE;
 		}
@@ -376,55 +408,6 @@ public:
 			redrawRequired = TRUE;
 		}
 
-		if (GetKey(olc::K1).bReleased)
-		{
-			redrawRequired = TRUE;
-			PlaceModule("AND");
-		}
-			
-
-		if (GetKey(olc::K2).bReleased)
-		{
-			redrawRequired = TRUE;
-			PlaceModule("OR");
-		}
-
-		if (GetKey(olc::K3).bReleased)
-		{
-			redrawRequired = TRUE;
-			PlaceModule("NAND");
-		}
-
-		if (GetKey(olc::K4).bReleased)
-		{
-			redrawRequired = TRUE;
-			PlaceModule("XOR");
-		}
-
-		if (GetKey(olc::K5).bReleased)
-		{
-			redrawRequired = TRUE;
-			PlaceModule("ADDER");
-		}
-
-		if (GetKey(olc::K6).bReleased)
-		{
-			redrawRequired = TRUE;
-			PlaceModule("REG");
-		}
-
-		if (GetKey(olc::K7).bReleased)
-		{
-			redrawRequired = TRUE;
-			PlaceModule("REGBUS");
-		}
-
-		if (GetKey(olc::K8).bReleased)
-		{
-			redrawRequired = TRUE;
-			PlaceModule("REGS");
-		}
-
 		if (GetMouse(1).bReleased)
 		{
 			bool needsNotOut = FALSE;
@@ -442,7 +425,7 @@ public:
 
 					if (distance < smallestDistance || smallestDistance == 0.00)
 					{
-						if (terminal.type == 'S' || terminal.type == 'E' || terminal.type == 'N' || terminal.type == 'U' || terminal.type == 'Q')
+						if (terminal.type == 'S' || terminal.type == 'E' || terminal.type == 'N' || terminal.type == 'U' || terminal.type == 'Q' || terminal.type == 'L')
 						{
 							smallestDistance = distance;
 							closestTerminalId = terminal.id;
@@ -538,13 +521,42 @@ public:
 		
 		if (GetKey(olc::Key::SPACE).bReleased)
 		{
-			if (activeInventoryItem < (int) inventoryComponents.size() - 1)
-				activeInventoryItem++;
+			if (activeInventoryComponent < (int) inventoryComponents.size() - 1)
+				activeInventoryComponent++;
 			else
-				activeInventoryItem = 0;
+				activeInventoryComponent = 0;
 
 			redrawRequired = TRUE;
 		}
+
+		if (GetKey(olc::Key::N).bReleased)
+		{
+			if (activeInventoryModule < (int)inventoryModules.size() - 1)
+				activeInventoryModule++;
+			else
+				activeInventoryModule = 0;
+
+			redrawRequired = TRUE;
+		}
+
+		if (GetKey(olc::Key::M).bReleased)
+		{
+			if (!placingModule)
+				placingModule = TRUE;
+			else
+				placingModule = FALSE;
+
+			redrawRequired = TRUE;
+		}
+
+		if (placingModule)
+			redrawRequired = TRUE;
+
+		olc::vi2d sourceScreenPosition;
+		pz.WorldToScreen({ 0, 0 }, sourceScreenPosition);
+
+		olc::vi2d clockScreenPosition;
+		pz.WorldToScreen({ -200, 0 }, clockScreenPosition);
 
 		if (redrawRequired)
 		{
@@ -555,6 +567,8 @@ public:
 			else
 				DrawCircle(sourceScreenPosition, 2, olc::DARK_GREY);
 
+			DrawClock(clockScreenPosition);
+
 			if (GetKey(olc::X).bHeld)
 			{
 				DrawLine({ GetMouseX(), 0 }, { GetMouseX(), ScreenHeight() }, { 64, 64, 64 }, 0xF0F0F0F0);
@@ -564,6 +578,24 @@ public:
 			DrawComponents();
 			DrawConnections();
 			DrawTerminals();
+
+			if (placingModule)
+			{
+				std::vector<olc::vi2d> ghostCoordinates = moduleCoordinates[activeInventoryModule];
+				std::vector<olc::vi2d> ghostCoordinatesScreen(ghostCoordinates.size());
+
+				for (int i = 0; i < ghostCoordinates.size(); i++)
+					pz.WorldToScreen(ghostCoordinates[i] + GetWorldMouse(), ghostCoordinatesScreen[i]);
+
+				if (ghostCoordinatesScreen.size() >= 4)
+				{
+					DrawLine(ghostCoordinatesScreen[0], ghostCoordinatesScreen[1], olc::GREY, 0xF0F0F0F0);
+					DrawLine(ghostCoordinatesScreen[0], ghostCoordinatesScreen[2], olc::GREY, 0xF0F0F0F0);
+					DrawLine(ghostCoordinatesScreen[1], ghostCoordinatesScreen[3], olc::GREY, 0xF0F0F0F0);
+					DrawLine(ghostCoordinatesScreen[2], ghostCoordinatesScreen[3], olc::GREY, 0xF0F0F0F0);
+				}
+			}
+
 			DrawStrings();
 			redrawRequired = FALSE;
 		}
@@ -573,23 +605,48 @@ public:
 
 private:
 	olc::panzoom pz;
+	bool clockState = FALSE;
+	int clockSpeed = 0;
+	int clockTicks = 0;
 	std::vector<Component> components;
 	std::vector<Connection> connections;
 	std::vector<Connection*> sourceConnections;
 	std::vector<Terminal> terminals;
-	int lastTerminalId = 3;
+	int lastTerminalId = 4;
 	int lastConnectionId = 1;
 	int lastComponentId = 2;
 	int selectedTerminalA = 0;
 	int selectedTerminalB = 0;
 	olc::vi2d selectedTerminalAPos;
 	olc::vi2d selectedTerminalBPos;
-	int activeInventoryItem = 0;
+	int activeInventoryComponent = 0;
 	std::vector<std::string> inventoryComponents = {
 		"GATED LATCH",
 		"TRANSISTOR",
 		"BUFFER",
 		"LED",
+	};
+	int activeInventoryModule = 0;
+	bool placingModule = FALSE;
+	std::vector<std::vector<olc::vi2d>> moduleCoordinates = {
+		{{-53, -88}, {60, -88}, {-53, 76}, {60, 76}},         // AND
+		{{-101, -48}, {97, -48}, {-101, 51}, {97, 51}},       // OR
+		{{-53, -90}, {158, -90}, {-53, 76}, {158, 76}},       // NAND
+		{{-151, -130}, {241, -130}, {-151, 191}, {241, 191}}, // XOR
+		{{-481, -265}, {468, -265}, {-481, 302}, {468, 302}}, // ADDER
+		{{-355, -187}, {354, -187}, {-355, 177}, {354, 177}}, // REG
+		{{-339, 103}, {800, 103}, {-339, 520}, {800, 520}},   // REGBUS
+		{{-377, 103}, {800, 103}, {-377, 932}, {800, 932}}    // REGS
+	};
+	std::vector<std::string> inventoryModules = {
+		"AND",
+		"OR",
+		"NAND",
+		"XOR",
+		"ADDER",
+		"REG",
+		"REGBUS",
+		"REGS",
 	};
 	bool simulationPaused = FALSE;
 	bool updateSimulation = FALSE;
@@ -716,18 +773,14 @@ private:
 				stoi(rawTerminalComponentId) + lastComponentId,
 				});
 
-			std::cout << stoi(rawTerminalId) + lastTerminalId << ", ";
-
 			lastTerminalIdOffset = stoi(rawTerminalId);
 		}
 
-		std::cout << std::endl;
 
 		lastComponentId += lastComponentIdOffset + 1;
 		lastConnectionId += lastConnectionIdOffset + 1;
 		lastTerminalId += lastTerminalIdOffset + 1;
 
-		std::cout << "lastTerminalId: " << lastTerminalId << std::endl;
 	}
 
 	void Load()
@@ -931,8 +984,12 @@ private:
 	{
 		std::string offsetString = std::to_string(int(pz.GetOffset().x)) + ", " + std::to_string(int(pz.GetOffset().y));
 
-		DrawString(olc::vi2d(50, 50), inventoryComponents[activeInventoryItem], olc::GREEN);
-		DrawString(olc::vi2d(50, 70), offsetString, olc::DARK_GREY);
+		DrawString(olc::vi2d(50, 50), offsetString, olc::DARK_GREY);
+
+		if (!placingModule)
+			DrawString(olc::vi2d(50, 70), inventoryComponents[activeInventoryComponent], olc::GREEN);
+		else
+			DrawString(olc::vi2d(50, 70), inventoryModules[activeInventoryModule], olc::GREEN);
 
 		if (simulationPaused)
 			DrawString(olc::vi2d(50, 90), "PAUSED", olc::RED);
@@ -959,6 +1016,22 @@ private:
 		DrawLine(pos + olc::vi2d(-5, -20), pos + olc::vi2d(-5, 20), olc::GREY);
 		DrawLine(pos + olc::vi2d(5, -30), pos + olc::vi2d(5, 30), olc::GREEN);
 		DrawLine(pos + olc::vi2d(5, 0), pos + olc::vi2d(25, 0), olc::GREEN);
+	}
+
+	void DrawClock(olc::vi2d pos)
+	{
+		olc::Pixel clockColour = olc::GREY;
+		if (clockState)
+			clockColour = olc::GREEN;
+
+		int xOffset;
+		if (clockSpeed > 9)
+			xOffset = -6;
+		else
+			xOffset = -3;
+
+		DrawCircle(pos, 30, clockColour);
+		DrawString(pos + olc::vi2d(xOffset, 15), std::to_string(clockSpeed), clockColour);
 	}
 
 	void DrawTerminal(olc::vi2d pos, olc::Pixel colour)
@@ -1075,8 +1148,6 @@ private:
 	{
 		// gated latch: D = data in, W = write enable, Q = data out
 
-		print("Simulating gated latch...");
-
 		bool dataInState = FALSE;
 		bool writeEnableState = FALSE;
 		bool dataInFound = FALSE;
@@ -1121,7 +1192,7 @@ private:
 
 		for (auto& connection : connections)
 		{
-			if (connection.terminalA == 1)
+			if (connection.terminalA == 1 || connection.terminalA == 3)
 				sourceConnections.push_back(&connection);
 			else
 			{
@@ -1288,6 +1359,39 @@ private:
 
 		updateSourceConnections();
 		updateSimulation = TRUE;
+	}
+
+	void simulateClock()
+	{
+		if (clockSpeed)
+		{
+			clockTicks++;
+			
+			if (clockTicks >= clockSpeed * 1000 || clockSpeed == 1)
+			{
+				if (clockState)
+					clockState = FALSE;
+				else
+					clockState = TRUE;
+
+				clockTicks = 0;
+				updateSimulation = TRUE;
+				redrawRequired = TRUE;
+			}
+		}
+		else
+		{
+			if (GetKey(olc::Key::O).bReleased)
+			{
+				if (clockState)
+					clockState = FALSE;
+				else
+					clockState = TRUE;
+
+				updateSimulation = TRUE;
+				redrawRequired = TRUE;
+			}
+		}
 	}
 		
 };
