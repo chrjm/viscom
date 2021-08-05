@@ -284,7 +284,7 @@ public:
 					if (alreadyVisitedCount > highestFound)
 						highestFound = alreadyVisitedCount;
 
-					if (alreadyVisitedCount > 1200)
+					if (alreadyVisitedCount > 8000)
 					{
 						forceLeave = TRUE;
 					}
@@ -785,7 +785,7 @@ private:
 
 	void Load()
 	{
-		std::string load_timestamp = "1627515803";
+		std::string load_timestamp = "1627806576";
 		std::string filepath = "saves/" + load_timestamp + "_";
 		std::ifstream globalsFile(filepath + "globals.txt");
 
@@ -1367,7 +1367,7 @@ private:
 		{
 			clockTicks++;
 			
-			if (clockTicks >= clockSpeed * 1000 || clockSpeed == 1)
+			if (clockTicks >= clockSpeed * 100 || clockSpeed == 1)
 			{
 				if (clockState)
 					clockState = FALSE;
