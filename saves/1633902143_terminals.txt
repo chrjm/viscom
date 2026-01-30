@@ -1,0 +1,4 @@
+1,25,0,sourceStart,1
+2,-25,0,sourceEnd,1
+3,-200,0,clock,1
+4,172,-147,buffer,2
