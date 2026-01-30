@@ -22,7 +22,7 @@ struct Terminal
 {
 	int id;
 	olc::vi2d pos;
-	bool state = FALSE;
+	bool state = false;
 	std::string type;
 	int componentId;
 };
@@ -42,7 +42,7 @@ struct Connection
 	olc::vi2d terminalAPos;
 	olc::vi2d terminalBPos;
 	int notOutTerminal;
-	bool state = FALSE;
+	bool state = false;
 };
 
 
@@ -62,10 +62,10 @@ public:
 
 		if (!componentBuilderMode)
 		{
-			terminals.push_back({ 1, { 25, 0 }, TRUE, "sourceStart", 1 });
-			terminals.push_back({ 2, { -25, 0 }, FALSE, "sourceEnd", 1 });
-			terminals.push_back({ 3, { -200, 0 }, FALSE, "clock", 1 });
-			terminals.push_back({ lastTerminalId, { -200, -20 }, FALSE, "clockHalt", 0 });
+			terminals.push_back({ 1, { 25, 0 }, true, "sourceStart", 1 });
+			terminals.push_back({ 2, { -25, 0 }, false, "sourceEnd", 1 });
+			terminals.push_back({ 3, { -200, 0 }, false, "clock", 1 });
+			terminals.push_back({ lastTerminalId, { -200, -20 }, false, "clockHalt", 0 });
 			lastTerminalId++;
 		}
 
@@ -77,21 +77,21 @@ public:
 		if (GetKey(olc::P).bReleased)
 		{
 			if (!simulationPaused)
-				simulationPaused = TRUE;
+				simulationPaused = true;
 			else
-				simulationPaused = FALSE;
+				simulationPaused = false;
 
-			redrawRequired = TRUE;
+			redrawRequired = true;
 		}
 
 		if (GetKey(olc::I).bReleased)
 		{
 			if (!showInfo)
-				showInfo = TRUE;
+				showInfo = true;
 			else
-				showInfo = FALSE;
+				showInfo = false;
 
-			redrawRequired = TRUE;
+			redrawRequired = true;
 		}
 
 		simulateClock();
@@ -99,7 +99,7 @@ public:
 		if (GetKey(olc::Key::UP).bReleased)
 		{
 			clockSpeed++;
-			redrawRequired = TRUE;
+			redrawRequired = true;
 		}
 
 		if (GetKey(olc::Key::DOWN).bReleased)
@@ -107,7 +107,7 @@ public:
 			if (clockSpeed > 0)
 			{
 				clockSpeed--;
-				redrawRequired = TRUE;
+				redrawRequired = true;
 			}
 		}
 
@@ -115,30 +115,30 @@ public:
 		if (GetMouseWheel() > 0)
 		{
 			pz.ZoomIn(1.1f);
-			redrawRequired = TRUE;
+			redrawRequired = true;
 		}
 
 		if (GetMouseWheel() < 0)
 		{
 			pz.ZoomOut(0.9f);
-			redrawRequired = TRUE;
+			redrawRequired = true;
 		}
 
 		if (GetKey(olc::Z).bReleased)
 		{
 			pz.SetScale({ 1.0f, 1.0f });
-			redrawRequired = TRUE;
+			redrawRequired = true;
 		}
 
 		if (GetKey(olc::Q).bHeld)
 		{
 			pz.ZoomOut(1000);
-			redrawRequired = TRUE;
+			redrawRequired = true;
 		}
 
 		// Pan
 		if (GetMouse(2).bHeld)
-			redrawRequired = TRUE;
+			redrawRequired = true;
 
 		if (GetMouse(2).bPressed)
 			pz.StartPan();
@@ -149,7 +149,7 @@ public:
 		// Draw mouse guides
 		if (GetKey(olc::X).bHeld || GetKey(olc::X).bReleased)
 		{
-			redrawRequired = TRUE;
+			redrawRequired = true;
 		}
 
 
@@ -158,8 +158,8 @@ public:
 		if (GetKey(olc::Key::R).bReleased)
 		{
 			programRAM();
-			updateSimulation = TRUE;
-			redrawRequired = TRUE;
+			updateSimulation = true;
+			redrawRequired = true;
 		}
 
 		// -------------------------------------------------------------------
@@ -178,21 +178,21 @@ public:
 
 		if (updateSimulation && !simulationPaused)
 		{
-			redrawRequired = TRUE;
+			redrawRequired = true;
 
 			for (auto& connection : connections)
-				connection.state = FALSE;
+				connection.state = false;
 
 			for (auto& terminal : terminals)
 				if (terminal.type != "sourceStart" && terminal.type != "gatedOut" && !("aluOut1" <= terminal.type && terminal.type <= "aluOut8") && !("ramOut1" <= terminal.type && terminal.type <= "ramOut8") && !("counterOut1" <= terminal.type && terminal.type <= "counterOut4") && !("microcounterOut1" <= terminal.type && terminal.type <= "microcounterOut3") && !("IROut1" <= terminal.type && terminal.type <= "IROut4") && !("IRDecodeOut5" <= terminal.type && terminal.type <= "IRDecodeOut8") && !(terminal.type.find("decoderOut") != std::string::npos) && !(terminal.type == "flagsRegOut1") && !(terminal.type == "flagsRegOut2") && !(terminal.type == "aluZeroFlagOut") && !(terminal.type == "aluCarryFlagOut"))
 				{
-					terminal.state = FALSE;
+					terminal.state = false;
 				}
 				else if (terminal.type == "clock")
 					terminal.state = clockState;
 
-			counterCounted = FALSE;
-			microcounterCounted = FALSE;
+			counterCounted = false;
+			microcounterCounted = false;
 
 			std::vector<int> transistorsToSimulate;
 			std::vector<int> gatedLatchesToSimulate;
@@ -204,7 +204,7 @@ public:
 			for (auto currentConnection : sourceConnections)
 			{
 				if (currentConnection->terminalA == 1)
-					currentConnection->state = TRUE;
+					currentConnection->state = true;
 
 				if (currentConnection->terminalA == 3)
 					currentConnection->state = clockState;
@@ -268,13 +268,13 @@ public:
 
 					if (thisNotOut)
 					{
-						thisNotOut->state = FALSE;
+						thisNotOut->state = false;
 						activeTerminals.push_back(thisNotOut);
 					}
 
 					if (thisEmitter)
 					{
-						thisEmitter->state = FALSE;
+						thisEmitter->state = false;
 						activeTerminals.push_back(thisEmitter);
 					}
 
@@ -282,7 +282,7 @@ public:
 
 					if (thisNextTerminal)
 					{
-						thisNextTerminal->state = TRUE;
+						thisNextTerminal->state = true;
 						activeTerminals.push_back(thisNextTerminal);
 					}
 				}
@@ -293,9 +293,9 @@ public:
 				{
 					Terminal* thisDataOut = findTerminalByComponent(gatedLatchId, "gatedOut");
 
-					bool originalDataOutState = FALSE;
+					bool originalDataOutState = false;
 					if (thisDataOut->state)
-						originalDataOutState = TRUE;
+						originalDataOutState = true;
 
 					simulateGatedLatch(gatedLatchId);
 					activeTerminals.push_back(thisDataOut);
@@ -375,7 +375,7 @@ public:
 						{
 							if (terminal.id == connection.terminalB)
 							{
-								terminal.state = TRUE;
+								terminal.state = true;
 							}
 						}
 					}
@@ -399,18 +399,18 @@ public:
 				newTerminalsState.push_back(terminal.state);
 			}
 
-			bool somethingChanged = FALSE;
+			bool somethingChanged = false;
 			for (int i = 0; i < newTerminalsState.size(); i++)
 			{
 				if (previousTerminalsState[i] != newTerminalsState[i])
 				{
-					somethingChanged = TRUE;
+					somethingChanged = true;
 					break;
 				}
 			}
 
 			if (!somethingChanged)
-				updateSimulation = FALSE;
+				updateSimulation = false;
 		}
 
 		//---------------------
@@ -423,21 +423,21 @@ public:
 
 				if (inventoryComponents[activeInventoryComponent] == "TRANSISTOR")
 				{
-					terminals.push_back({ lastTerminalId, GetWorldMouse() + olc::vi2d(25, -25), FALSE, "transCollector", lastComponentId });
+					terminals.push_back({ lastTerminalId, GetWorldMouse() + olc::vi2d(25, -25), false, "transCollector", lastComponentId });
 					lastTerminalId++;
-					terminals.push_back({ lastTerminalId, GetWorldMouse() + olc::vi2d(-25, 0), FALSE, "transBase", lastComponentId });
+					terminals.push_back({ lastTerminalId, GetWorldMouse() + olc::vi2d(-25, 0), false, "transBase", lastComponentId });
 					lastTerminalId++;
-					terminals.push_back({ lastTerminalId, GetWorldMouse() + olc::vi2d(25, 25), FALSE, "transEmitter", lastComponentId });
+					terminals.push_back({ lastTerminalId, GetWorldMouse() + olc::vi2d(25, 25), false, "transEmitter", lastComponentId });
 					lastTerminalId++;
 				}
 
 				if (inventoryComponents[activeInventoryComponent] == "GATED LATCH")
 				{
-					terminals.push_back({ lastTerminalId, GetWorldMouse() + olc::vi2d(-25, -25), FALSE, "gatedIn", lastComponentId });
+					terminals.push_back({ lastTerminalId, GetWorldMouse() + olc::vi2d(-25, -25), false, "gatedIn", lastComponentId });
 					lastTerminalId++;
-					terminals.push_back({ lastTerminalId, GetWorldMouse() + olc::vi2d(-25, 25), FALSE, "gatedWriteEnable", lastComponentId });
+					terminals.push_back({ lastTerminalId, GetWorldMouse() + olc::vi2d(-25, 25), false, "gatedWriteEnable", lastComponentId });
 					lastTerminalId++;
-					terminals.push_back({ lastTerminalId, GetWorldMouse() + olc::vi2d(25, 0), FALSE, "gatedOut", lastComponentId });
+					terminals.push_back({ lastTerminalId, GetWorldMouse() + olc::vi2d(25, 0), false, "gatedOut", lastComponentId });
 					lastTerminalId++;
 				}
 
@@ -447,63 +447,63 @@ public:
 					int width = 300;
 					olc::vf2d worldMouse = GetWorldMouse();
 
-					terminals.push_back({ lastTerminalId, worldMouse + olc::vi2d(width, width / 2), FALSE, "aluSub", lastComponentId });
+					terminals.push_back({ lastTerminalId, worldMouse + olc::vi2d(width, width / 2), false, "aluSub", lastComponentId });
 					lastTerminalId++;
 
-					terminals.push_back({ lastTerminalId, worldMouse + olc::vi2d(width, width / 6), FALSE, "aluZeroFlagOut", lastComponentId });
+					terminals.push_back({ lastTerminalId, worldMouse + olc::vi2d(width, width / 6), false, "aluZeroFlagOut", lastComponentId });
 					lastTerminalId++;
-					terminals.push_back({ lastTerminalId, worldMouse + olc::vi2d(width, width / 4), FALSE, "aluCarryFlagOut", lastComponentId });
-					lastTerminalId++;
-
-					terminals.push_back({ lastTerminalId, worldMouse + olc::vi2d(margin * 2 + 0 * margin, 0), FALSE, "aluInA1", lastComponentId });
-					lastTerminalId++;
-					terminals.push_back({ lastTerminalId, worldMouse + olc::vi2d(margin * 2 + 1 * margin, 0), FALSE, "aluInA2", lastComponentId });
-					lastTerminalId++;
-					terminals.push_back({ lastTerminalId, worldMouse + olc::vi2d(margin * 2 + 2 * margin, 0), FALSE, "aluInA3", lastComponentId });
-					lastTerminalId++;
-					terminals.push_back({ lastTerminalId, worldMouse + olc::vi2d(margin * 2 + 3 * margin, 0), FALSE, "aluInA4", lastComponentId });
-					lastTerminalId++;
-					terminals.push_back({ lastTerminalId, worldMouse + olc::vi2d(margin * 2 + 4 * margin, 0), FALSE, "aluInA5", lastComponentId });
-					lastTerminalId++;
-					terminals.push_back({ lastTerminalId, worldMouse + olc::vi2d(margin * 2 + 5 * margin, 0), FALSE, "aluInA6", lastComponentId });
-					lastTerminalId++;
-					terminals.push_back({ lastTerminalId, worldMouse + olc::vi2d(margin * 2 + 6 * margin, 0), FALSE, "aluInA7", lastComponentId });
-					lastTerminalId++;
-					terminals.push_back({ lastTerminalId, worldMouse + olc::vi2d(margin * 2 + 7 * margin, 0), FALSE, "aluInA8", lastComponentId });
+					terminals.push_back({ lastTerminalId, worldMouse + olc::vi2d(width, width / 4), false, "aluCarryFlagOut", lastComponentId });
 					lastTerminalId++;
 
-					terminals.push_back({ lastTerminalId, worldMouse + olc::vi2d(margin * 2 + 0 * margin, margin * 3 + margin * 8), FALSE, "aluInB1", lastComponentId });
+					terminals.push_back({ lastTerminalId, worldMouse + olc::vi2d(margin * 2 + 0 * margin, 0), false, "aluInA1", lastComponentId });
 					lastTerminalId++;
-					terminals.push_back({ lastTerminalId, worldMouse + olc::vi2d(margin * 2 + 1 * margin, margin * 3 + margin * 8), FALSE, "aluInB2", lastComponentId });
+					terminals.push_back({ lastTerminalId, worldMouse + olc::vi2d(margin * 2 + 1 * margin, 0), false, "aluInA2", lastComponentId });
 					lastTerminalId++;
-					terminals.push_back({ lastTerminalId, worldMouse + olc::vi2d(margin * 2 + 2 * margin, margin * 3 + margin * 8), FALSE, "aluInB3", lastComponentId });
+					terminals.push_back({ lastTerminalId, worldMouse + olc::vi2d(margin * 2 + 2 * margin, 0), false, "aluInA3", lastComponentId });
 					lastTerminalId++;
-					terminals.push_back({ lastTerminalId, worldMouse + olc::vi2d(margin * 2 + 3 * margin, margin * 3 + margin * 8), FALSE, "aluInB4", lastComponentId });
+					terminals.push_back({ lastTerminalId, worldMouse + olc::vi2d(margin * 2 + 3 * margin, 0), false, "aluInA4", lastComponentId });
 					lastTerminalId++;
-					terminals.push_back({ lastTerminalId, worldMouse + olc::vi2d(margin * 2 + 4 * margin, margin * 3 + margin * 8), FALSE, "aluInB5", lastComponentId });
+					terminals.push_back({ lastTerminalId, worldMouse + olc::vi2d(margin * 2 + 4 * margin, 0), false, "aluInA5", lastComponentId });
 					lastTerminalId++;
-					terminals.push_back({ lastTerminalId, worldMouse + olc::vi2d(margin * 2 + 5 * margin, margin * 3 + margin * 8), FALSE, "aluInB6", lastComponentId });
+					terminals.push_back({ lastTerminalId, worldMouse + olc::vi2d(margin * 2 + 5 * margin, 0), false, "aluInA6", lastComponentId });
 					lastTerminalId++;
-					terminals.push_back({ lastTerminalId, worldMouse + olc::vi2d(margin * 2 + 6 * margin, margin * 3 + margin * 8), FALSE, "aluInB7", lastComponentId });
+					terminals.push_back({ lastTerminalId, worldMouse + olc::vi2d(margin * 2 + 6 * margin, 0), false, "aluInA7", lastComponentId });
 					lastTerminalId++;
-					terminals.push_back({ lastTerminalId, worldMouse + olc::vi2d(margin * 2 + 7 * margin, margin * 3 + margin * 8), FALSE, "aluInB8", lastComponentId });
+					terminals.push_back({ lastTerminalId, worldMouse + olc::vi2d(margin * 2 + 7 * margin, 0), false, "aluInA8", lastComponentId });
 					lastTerminalId++;
 
-					terminals.push_back({ lastTerminalId, worldMouse + olc::vi2d(0, margin * 2 + 0 * margin), FALSE, "aluOut1", lastComponentId });
+					terminals.push_back({ lastTerminalId, worldMouse + olc::vi2d(margin * 2 + 0 * margin, margin * 3 + margin * 8), false, "aluInB1", lastComponentId });
 					lastTerminalId++;
-					terminals.push_back({ lastTerminalId, worldMouse + olc::vi2d(0, margin * 2 + 1 * margin), FALSE, "aluOut2", lastComponentId });
+					terminals.push_back({ lastTerminalId, worldMouse + olc::vi2d(margin * 2 + 1 * margin, margin * 3 + margin * 8), false, "aluInB2", lastComponentId });
 					lastTerminalId++;
-					terminals.push_back({ lastTerminalId, worldMouse + olc::vi2d(0, margin * 2 + 2 * margin), FALSE, "aluOut3", lastComponentId });
+					terminals.push_back({ lastTerminalId, worldMouse + olc::vi2d(margin * 2 + 2 * margin, margin * 3 + margin * 8), false, "aluInB3", lastComponentId });
 					lastTerminalId++;
-					terminals.push_back({ lastTerminalId, worldMouse + olc::vi2d(0, margin * 2 + 3 * margin), FALSE, "aluOut4", lastComponentId });
+					terminals.push_back({ lastTerminalId, worldMouse + olc::vi2d(margin * 2 + 3 * margin, margin * 3 + margin * 8), false, "aluInB4", lastComponentId });
 					lastTerminalId++;
-					terminals.push_back({ lastTerminalId, worldMouse + olc::vi2d(0, margin * 2 + 4 * margin), FALSE, "aluOut5", lastComponentId });
+					terminals.push_back({ lastTerminalId, worldMouse + olc::vi2d(margin * 2 + 4 * margin, margin * 3 + margin * 8), false, "aluInB5", lastComponentId });
 					lastTerminalId++;
-					terminals.push_back({ lastTerminalId, worldMouse + olc::vi2d(0, margin * 2 + 5 * margin), FALSE, "aluOut6", lastComponentId });
+					terminals.push_back({ lastTerminalId, worldMouse + olc::vi2d(margin * 2 + 5 * margin, margin * 3 + margin * 8), false, "aluInB6", lastComponentId });
 					lastTerminalId++;
-					terminals.push_back({ lastTerminalId, worldMouse + olc::vi2d(0, margin * 2 + 6 * margin), FALSE, "aluOut7", lastComponentId });
+					terminals.push_back({ lastTerminalId, worldMouse + olc::vi2d(margin * 2 + 6 * margin, margin * 3 + margin * 8), false, "aluInB7", lastComponentId });
 					lastTerminalId++;
-					terminals.push_back({ lastTerminalId, worldMouse + olc::vi2d(0, margin * 2 + 7 * margin), FALSE, "aluOut8", lastComponentId });
+					terminals.push_back({ lastTerminalId, worldMouse + olc::vi2d(margin * 2 + 7 * margin, margin * 3 + margin * 8), false, "aluInB8", lastComponentId });
+					lastTerminalId++;
+
+					terminals.push_back({ lastTerminalId, worldMouse + olc::vi2d(0, margin * 2 + 0 * margin), false, "aluOut1", lastComponentId });
+					lastTerminalId++;
+					terminals.push_back({ lastTerminalId, worldMouse + olc::vi2d(0, margin * 2 + 1 * margin), false, "aluOut2", lastComponentId });
+					lastTerminalId++;
+					terminals.push_back({ lastTerminalId, worldMouse + olc::vi2d(0, margin * 2 + 2 * margin), false, "aluOut3", lastComponentId });
+					lastTerminalId++;
+					terminals.push_back({ lastTerminalId, worldMouse + olc::vi2d(0, margin * 2 + 3 * margin), false, "aluOut4", lastComponentId });
+					lastTerminalId++;
+					terminals.push_back({ lastTerminalId, worldMouse + olc::vi2d(0, margin * 2 + 4 * margin), false, "aluOut5", lastComponentId });
+					lastTerminalId++;
+					terminals.push_back({ lastTerminalId, worldMouse + olc::vi2d(0, margin * 2 + 5 * margin), false, "aluOut6", lastComponentId });
+					lastTerminalId++;
+					terminals.push_back({ lastTerminalId, worldMouse + olc::vi2d(0, margin * 2 + 6 * margin), false, "aluOut7", lastComponentId });
+					lastTerminalId++;
+					terminals.push_back({ lastTerminalId, worldMouse + olc::vi2d(0, margin * 2 + 7 * margin), false, "aluOut8", lastComponentId });
 					lastTerminalId++;
 				}
 
@@ -516,51 +516,51 @@ public:
 					olc::vf2d worldMouse = GetWorldMouse();
 
 					// Input Terminals
-					terminals.push_back({ lastTerminalId, worldMouse + olc::vf2d(margin * 1 + 0 * margin, 0), FALSE, "ramIn1", lastComponentId });
+					terminals.push_back({ lastTerminalId, worldMouse + olc::vf2d(margin * 1 + 0 * margin, 0), false, "ramIn1", lastComponentId });
 					lastTerminalId++;
-					terminals.push_back({ lastTerminalId, worldMouse + olc::vf2d(margin * 1 + 1.25 * margin, 0), FALSE, "ramIn2", lastComponentId });
+					terminals.push_back({ lastTerminalId, worldMouse + olc::vf2d(margin * 1 + 1.25 * margin, 0), false, "ramIn2", lastComponentId });
 					lastTerminalId++;
-					terminals.push_back({ lastTerminalId, worldMouse + olc::vf2d(margin * 1 + 2.5 * margin, 0), FALSE, "ramIn3", lastComponentId });
+					terminals.push_back({ lastTerminalId, worldMouse + olc::vf2d(margin * 1 + 2.5 * margin, 0), false, "ramIn3", lastComponentId });
 					lastTerminalId++;
-					terminals.push_back({ lastTerminalId, worldMouse + olc::vf2d(margin * 1 + 3.75 * margin, 0), FALSE, "ramIn4", lastComponentId });
+					terminals.push_back({ lastTerminalId, worldMouse + olc::vf2d(margin * 1 + 3.75 * margin, 0), false, "ramIn4", lastComponentId });
 					lastTerminalId++;
-					terminals.push_back({ lastTerminalId, worldMouse + olc::vf2d(margin * 1 + 5 * margin, 0), FALSE, "ramIn5", lastComponentId });
+					terminals.push_back({ lastTerminalId, worldMouse + olc::vf2d(margin * 1 + 5 * margin, 0), false, "ramIn5", lastComponentId });
 					lastTerminalId++;
-					terminals.push_back({ lastTerminalId, worldMouse + olc::vf2d(margin * 1 + 6.25 * margin, 0), FALSE, "ramIn6", lastComponentId });
+					terminals.push_back({ lastTerminalId, worldMouse + olc::vf2d(margin * 1 + 6.25 * margin, 0), false, "ramIn6", lastComponentId });
 					lastTerminalId++;
-					terminals.push_back({ lastTerminalId, worldMouse + olc::vf2d(margin * 1 + 7.5 * margin, 0), FALSE, "ramIn7", lastComponentId });
+					terminals.push_back({ lastTerminalId, worldMouse + olc::vf2d(margin * 1 + 7.5 * margin, 0), false, "ramIn7", lastComponentId });
 					lastTerminalId++;
-					terminals.push_back({ lastTerminalId, worldMouse + olc::vf2d(margin * 1 + 8.75 * margin, 0), FALSE, "ramIn8", lastComponentId });
+					terminals.push_back({ lastTerminalId, worldMouse + olc::vf2d(margin * 1 + 8.75 * margin, 0), false, "ramIn8", lastComponentId });
 					lastTerminalId++;
 
 					// Output Terminals
-					terminals.push_back({ lastTerminalId, worldMouse + olc::vf2d(margin * 1 + 0 * margin, ramHeight), FALSE, "ramOut1", lastComponentId });
+					terminals.push_back({ lastTerminalId, worldMouse + olc::vf2d(margin * 1 + 0 * margin, ramHeight), false, "ramOut1", lastComponentId });
 					lastTerminalId++;
-					terminals.push_back({ lastTerminalId, worldMouse + olc::vf2d(margin * 1 + 1.25 * margin, ramHeight), FALSE, "ramOut2", lastComponentId });
+					terminals.push_back({ lastTerminalId, worldMouse + olc::vf2d(margin * 1 + 1.25 * margin, ramHeight), false, "ramOut2", lastComponentId });
 					lastTerminalId++;
-					terminals.push_back({ lastTerminalId, worldMouse + olc::vf2d(margin * 1 + 2.5 * margin, ramHeight), FALSE, "ramOut3", lastComponentId });
+					terminals.push_back({ lastTerminalId, worldMouse + olc::vf2d(margin * 1 + 2.5 * margin, ramHeight), false, "ramOut3", lastComponentId });
 					lastTerminalId++;
-					terminals.push_back({ lastTerminalId, worldMouse + olc::vf2d(margin * 1 + 3.75 * margin, ramHeight), FALSE, "ramOut4", lastComponentId });
+					terminals.push_back({ lastTerminalId, worldMouse + olc::vf2d(margin * 1 + 3.75 * margin, ramHeight), false, "ramOut4", lastComponentId });
 					lastTerminalId++;
-					terminals.push_back({ lastTerminalId, worldMouse + olc::vf2d(margin * 1 + 5 * margin, ramHeight), FALSE, "ramOut5", lastComponentId });
+					terminals.push_back({ lastTerminalId, worldMouse + olc::vf2d(margin * 1 + 5 * margin, ramHeight), false, "ramOut5", lastComponentId });
 					lastTerminalId++;
-					terminals.push_back({ lastTerminalId, worldMouse + olc::vf2d(margin * 1 + 6.25 * margin, ramHeight), FALSE, "ramOut6", lastComponentId });
+					terminals.push_back({ lastTerminalId, worldMouse + olc::vf2d(margin * 1 + 6.25 * margin, ramHeight), false, "ramOut6", lastComponentId });
 					lastTerminalId++;
-					terminals.push_back({ lastTerminalId, worldMouse + olc::vf2d(margin * 1 + 7.5 * margin, ramHeight), FALSE, "ramOut7", lastComponentId });
+					terminals.push_back({ lastTerminalId, worldMouse + olc::vf2d(margin * 1 + 7.5 * margin, ramHeight), false, "ramOut7", lastComponentId });
 					lastTerminalId++;
-					terminals.push_back({ lastTerminalId, worldMouse + olc::vf2d(margin * 1 + 8.75 * margin, ramHeight), FALSE, "ramOut8", lastComponentId });
-					lastTerminalId++;
-
-					terminals.push_back({ lastTerminalId, worldMouse + olc::vf2d(0, ramHeight / 2 + 20), FALSE, "ramWriteEnable", lastComponentId });
+					terminals.push_back({ lastTerminalId, worldMouse + olc::vf2d(margin * 1 + 8.75 * margin, ramHeight), false, "ramOut8", lastComponentId });
 					lastTerminalId++;
 
-					terminals.push_back({ lastTerminalId, worldMouse + olc::vf2d(ramWidth, ramHeight / 2 - 60), FALSE, "ramAddressIn4", lastComponentId });
+					terminals.push_back({ lastTerminalId, worldMouse + olc::vf2d(0, ramHeight / 2 + 20), false, "ramWriteEnable", lastComponentId });
 					lastTerminalId++;
-					terminals.push_back({ lastTerminalId, worldMouse + olc::vf2d(ramWidth, ramHeight / 2 - 20), FALSE, "ramAddressIn3", lastComponentId });
+
+					terminals.push_back({ lastTerminalId, worldMouse + olc::vf2d(ramWidth, ramHeight / 2 - 60), false, "ramAddressIn4", lastComponentId });
 					lastTerminalId++;
-					terminals.push_back({ lastTerminalId, worldMouse + olc::vf2d(ramWidth, ramHeight / 2 + 20), FALSE, "ramAddressIn2", lastComponentId });
+					terminals.push_back({ lastTerminalId, worldMouse + olc::vf2d(ramWidth, ramHeight / 2 - 20), false, "ramAddressIn3", lastComponentId });
 					lastTerminalId++;
-					terminals.push_back({ lastTerminalId, worldMouse + olc::vf2d(ramWidth, ramHeight / 2 + 60), FALSE, "ramAddressIn1", lastComponentId });
+					terminals.push_back({ lastTerminalId, worldMouse + olc::vf2d(ramWidth, ramHeight / 2 + 20), false, "ramAddressIn2", lastComponentId });
+					lastTerminalId++;
+					terminals.push_back({ lastTerminalId, worldMouse + olc::vf2d(ramWidth, ramHeight / 2 + 60), false, "ramAddressIn1", lastComponentId });
 					lastTerminalId++;
 				}
 
@@ -573,35 +573,35 @@ public:
 					olc::vf2d worldMouse = GetWorldMouse();
 
 					// Counter In
-					terminals.push_back({ lastTerminalId, worldMouse + olc::vf2d(bitPadding - 4, 0), FALSE, "counterIn4", lastComponentId });
+					terminals.push_back({ lastTerminalId, worldMouse + olc::vf2d(bitPadding - 4, 0), false, "counterIn4", lastComponentId });
 					lastTerminalId++;
-					terminals.push_back({ lastTerminalId, worldMouse + olc::vf2d(bitPadding * 2 - 4, 0), FALSE, "counterIn3", lastComponentId });
+					terminals.push_back({ lastTerminalId, worldMouse + olc::vf2d(bitPadding * 2 - 4, 0), false, "counterIn3", lastComponentId });
 					lastTerminalId++;
-					terminals.push_back({ lastTerminalId, worldMouse + olc::vf2d(bitPadding * 3 - 4, 0), FALSE, "counterIn2", lastComponentId });
+					terminals.push_back({ lastTerminalId, worldMouse + olc::vf2d(bitPadding * 3 - 4, 0), false, "counterIn2", lastComponentId });
 					lastTerminalId++;
-					terminals.push_back({ lastTerminalId, worldMouse + olc::vf2d(bitPadding * 4 - 4, 0), FALSE, "counterIn1", lastComponentId });
+					terminals.push_back({ lastTerminalId, worldMouse + olc::vf2d(bitPadding * 4 - 4, 0), false, "counterIn1", lastComponentId });
 					lastTerminalId++;
 
 					// Counter Out
-					terminals.push_back({ lastTerminalId, worldMouse + olc::vf2d(bitPadding - 4, counterHeight), FALSE, "counterOut4", lastComponentId });
+					terminals.push_back({ lastTerminalId, worldMouse + olc::vf2d(bitPadding - 4, counterHeight), false, "counterOut4", lastComponentId });
 					lastTerminalId++;
-					terminals.push_back({ lastTerminalId, worldMouse + olc::vf2d(bitPadding * 2 - 4, counterHeight), FALSE, "counterOut3", lastComponentId });
+					terminals.push_back({ lastTerminalId, worldMouse + olc::vf2d(bitPadding * 2 - 4, counterHeight), false, "counterOut3", lastComponentId });
 					lastTerminalId++;
-					terminals.push_back({ lastTerminalId, worldMouse + olc::vf2d(bitPadding * 3 - 4, counterHeight), FALSE, "counterOut2", lastComponentId });
+					terminals.push_back({ lastTerminalId, worldMouse + olc::vf2d(bitPadding * 3 - 4, counterHeight), false, "counterOut2", lastComponentId });
 					lastTerminalId++;
-					terminals.push_back({ lastTerminalId, worldMouse + olc::vf2d(bitPadding * 4 - 4, counterHeight), FALSE, "counterOut1", lastComponentId });
+					terminals.push_back({ lastTerminalId, worldMouse + olc::vf2d(bitPadding * 4 - 4, counterHeight), false, "counterOut1", lastComponentId });
 					lastTerminalId++;
 
 					// Counter Clock
-					terminals.push_back({ lastTerminalId, worldMouse + olc::vf2d(0, 0 + bitPadding / 3), FALSE, "counterClock", lastComponentId });
+					terminals.push_back({ lastTerminalId, worldMouse + olc::vf2d(0, 0 + bitPadding / 3), false, "counterClock", lastComponentId });
 					lastTerminalId++;
 
 					// Jump (Counter Write Enable)
-					terminals.push_back({ lastTerminalId, worldMouse + olc::vf2d(0, counterHeight / 2), FALSE, "counterWriteEnable", lastComponentId });
+					terminals.push_back({ lastTerminalId, worldMouse + olc::vf2d(0, counterHeight / 2), false, "counterWriteEnable", lastComponentId });
 					lastTerminalId++;
 
 					// Count Enable (increment)
-					terminals.push_back({ lastTerminalId, worldMouse + olc::vf2d(0, counterHeight - bitPadding / 3), FALSE, "counterCountEnable", lastComponentId });
+					terminals.push_back({ lastTerminalId, worldMouse + olc::vf2d(0, counterHeight - bitPadding / 3), false, "counterCountEnable", lastComponentId });
 					lastTerminalId++;
 				}
 
@@ -614,23 +614,23 @@ public:
 					olc::vf2d worldMouse = GetWorldMouse();
 
 					// Reset
-					terminals.push_back({ lastTerminalId, worldMouse + olc::vf2d(0, counterHeight / 2), FALSE, "microcounterReset", lastComponentId });
+					terminals.push_back({ lastTerminalId, worldMouse + olc::vf2d(0, counterHeight / 2), false, "microcounterReset", lastComponentId });
 					lastTerminalId++;
 
 					// Counter In
-					terminals.push_back({ lastTerminalId, worldMouse + olc::vf2d(bitPadding * 2 - 29, 0), FALSE, "microcounterIn3", lastComponentId });
+					terminals.push_back({ lastTerminalId, worldMouse + olc::vf2d(bitPadding * 2 - 29, 0), false, "microcounterIn3", lastComponentId });
 					lastTerminalId++;
-					terminals.push_back({ lastTerminalId, worldMouse + olc::vf2d(bitPadding * 3 - 29, 0), FALSE, "microcounterIn2", lastComponentId });
+					terminals.push_back({ lastTerminalId, worldMouse + olc::vf2d(bitPadding * 3 - 29, 0), false, "microcounterIn2", lastComponentId });
 					lastTerminalId++;
-					terminals.push_back({ lastTerminalId, worldMouse + olc::vf2d(bitPadding * 4 - 29, 0), FALSE, "microcounterIn1", lastComponentId });
+					terminals.push_back({ lastTerminalId, worldMouse + olc::vf2d(bitPadding * 4 - 29, 0), false, "microcounterIn1", lastComponentId });
 					lastTerminalId++;
 
 					// Counter Out
-					terminals.push_back({ lastTerminalId, worldMouse + olc::vf2d(bitPadding * 2 - 29, counterHeight), FALSE, "microcounterOut3", lastComponentId });
+					terminals.push_back({ lastTerminalId, worldMouse + olc::vf2d(bitPadding * 2 - 29, counterHeight), false, "microcounterOut3", lastComponentId });
 					lastTerminalId++;
-					terminals.push_back({ lastTerminalId, worldMouse + olc::vf2d(bitPadding * 3 - 29, counterHeight), FALSE, "microcounterOut2", lastComponentId });
+					terminals.push_back({ lastTerminalId, worldMouse + olc::vf2d(bitPadding * 3 - 29, counterHeight), false, "microcounterOut2", lastComponentId });
 					lastTerminalId++;
-					terminals.push_back({ lastTerminalId, worldMouse + olc::vf2d(bitPadding * 4 - 29, counterHeight), FALSE, "microcounterOut1", lastComponentId });
+					terminals.push_back({ lastTerminalId, worldMouse + olc::vf2d(bitPadding * 4 - 29, counterHeight), false, "microcounterOut1", lastComponentId });
 					lastTerminalId++;
 				}
 
@@ -644,45 +644,45 @@ public:
 					olc::vf2d worldMouse = GetWorldMouse();
 
 					// IR In
-					terminals.push_back({ lastTerminalId, worldMouse + olc::vf2d(bitPadding - xOffset, 0), FALSE, "IRIn8", lastComponentId });
+					terminals.push_back({ lastTerminalId, worldMouse + olc::vf2d(bitPadding - xOffset, 0), false, "IRIn8", lastComponentId });
 					lastTerminalId++;
-					terminals.push_back({ lastTerminalId, worldMouse + olc::vf2d(bitPadding * 2 - xOffset, 0), FALSE, "IRIn7", lastComponentId });
+					terminals.push_back({ lastTerminalId, worldMouse + olc::vf2d(bitPadding * 2 - xOffset, 0), false, "IRIn7", lastComponentId });
 					lastTerminalId++;
-					terminals.push_back({ lastTerminalId, worldMouse + olc::vf2d(bitPadding * 3 - xOffset, 0), FALSE, "IRIn6", lastComponentId });
+					terminals.push_back({ lastTerminalId, worldMouse + olc::vf2d(bitPadding * 3 - xOffset, 0), false, "IRIn6", lastComponentId });
 					lastTerminalId++;
-					terminals.push_back({ lastTerminalId, worldMouse + olc::vf2d(bitPadding * 4 - xOffset, 0), FALSE, "IRIn5", lastComponentId });
+					terminals.push_back({ lastTerminalId, worldMouse + olc::vf2d(bitPadding * 4 - xOffset, 0), false, "IRIn5", lastComponentId });
 					lastTerminalId++;
-					terminals.push_back({ lastTerminalId, worldMouse + olc::vf2d(bitPadding * 5 - xOffset, 0), FALSE, "IRIn4", lastComponentId });
+					terminals.push_back({ lastTerminalId, worldMouse + olc::vf2d(bitPadding * 5 - xOffset, 0), false, "IRIn4", lastComponentId });
 					lastTerminalId++;
-					terminals.push_back({ lastTerminalId, worldMouse + olc::vf2d(bitPadding * 6 - xOffset, 0), FALSE, "IRIn3", lastComponentId });
+					terminals.push_back({ lastTerminalId, worldMouse + olc::vf2d(bitPadding * 6 - xOffset, 0), false, "IRIn3", lastComponentId });
 					lastTerminalId++;
-					terminals.push_back({ lastTerminalId, worldMouse + olc::vf2d(bitPadding * 7 - xOffset, 0), FALSE, "IRIn2", lastComponentId });
+					terminals.push_back({ lastTerminalId, worldMouse + olc::vf2d(bitPadding * 7 - xOffset, 0), false, "IRIn2", lastComponentId });
 					lastTerminalId++;
-					terminals.push_back({ lastTerminalId, worldMouse + olc::vf2d(bitPadding * 8 - xOffset, 0), FALSE, "IRIn1", lastComponentId });
+					terminals.push_back({ lastTerminalId, worldMouse + olc::vf2d(bitPadding * 8 - xOffset, 0), false, "IRIn1", lastComponentId });
 					lastTerminalId++;
 
 					// IR Decode Out
-					terminals.push_back({ lastTerminalId, worldMouse + olc::vf2d(bitPadding - xOffset, counterHeight), FALSE, "IRDecodeOut8", lastComponentId });
+					terminals.push_back({ lastTerminalId, worldMouse + olc::vf2d(bitPadding - xOffset, counterHeight), false, "IRDecodeOut8", lastComponentId });
 					lastTerminalId++;
-					terminals.push_back({ lastTerminalId, worldMouse + olc::vf2d(bitPadding * 2 - xOffset, counterHeight), FALSE, "IRDecodeOut7", lastComponentId });
+					terminals.push_back({ lastTerminalId, worldMouse + olc::vf2d(bitPadding * 2 - xOffset, counterHeight), false, "IRDecodeOut7", lastComponentId });
 					lastTerminalId++;
-					terminals.push_back({ lastTerminalId, worldMouse + olc::vf2d(bitPadding * 3 - xOffset, counterHeight), FALSE, "IRDecodeOut6", lastComponentId });
+					terminals.push_back({ lastTerminalId, worldMouse + olc::vf2d(bitPadding * 3 - xOffset, counterHeight), false, "IRDecodeOut6", lastComponentId });
 					lastTerminalId++;
-					terminals.push_back({ lastTerminalId, worldMouse + olc::vf2d(bitPadding * 4 - xOffset, counterHeight), FALSE, "IRDecodeOut5", lastComponentId });
+					terminals.push_back({ lastTerminalId, worldMouse + olc::vf2d(bitPadding * 4 - xOffset, counterHeight), false, "IRDecodeOut5", lastComponentId });
 					lastTerminalId++;
 
 					// IR Out
-					terminals.push_back({ lastTerminalId, worldMouse + olc::vf2d(bitPadding * 5- xOffset, counterHeight), FALSE, "IROut4", lastComponentId });
+					terminals.push_back({ lastTerminalId, worldMouse + olc::vf2d(bitPadding * 5- xOffset, counterHeight), false, "IROut4", lastComponentId });
 					lastTerminalId++;
-					terminals.push_back({ lastTerminalId, worldMouse + olc::vf2d(bitPadding * 6 - xOffset, counterHeight), FALSE, "IROut3", lastComponentId });
+					terminals.push_back({ lastTerminalId, worldMouse + olc::vf2d(bitPadding * 6 - xOffset, counterHeight), false, "IROut3", lastComponentId });
 					lastTerminalId++;
-					terminals.push_back({ lastTerminalId, worldMouse + olc::vf2d(bitPadding * 7 - xOffset, counterHeight), FALSE, "IROut2", lastComponentId });
+					terminals.push_back({ lastTerminalId, worldMouse + olc::vf2d(bitPadding * 7 - xOffset, counterHeight), false, "IROut2", lastComponentId });
 					lastTerminalId++;
-					terminals.push_back({ lastTerminalId, worldMouse + olc::vf2d(bitPadding * 8 - xOffset, counterHeight), FALSE, "IROut1", lastComponentId });
+					terminals.push_back({ lastTerminalId, worldMouse + olc::vf2d(bitPadding * 8 - xOffset, counterHeight), false, "IROut1", lastComponentId });
 					lastTerminalId++;
 
 					// IR Write Enable
-					terminals.push_back({ lastTerminalId, worldMouse + olc::vf2d(0, counterHeight / 2), FALSE, "IRWriteEnable", lastComponentId });
+					terminals.push_back({ lastTerminalId, worldMouse + olc::vf2d(0, counterHeight / 2), false, "IRWriteEnable", lastComponentId });
 					lastTerminalId++;
 
 					
@@ -699,59 +699,59 @@ public:
 					olc::vf2d worldMouse = GetWorldMouse();
 
 					// Decoder In
-					terminals.push_back({ lastTerminalId, worldMouse + olc::vf2d(topBitPadding - xOffset, 0), FALSE, "decoderIn1", lastComponentId });
+					terminals.push_back({ lastTerminalId, worldMouse + olc::vf2d(topBitPadding - xOffset, 0), false, "decoderIn1", lastComponentId });
 					lastTerminalId++;
-					terminals.push_back({ lastTerminalId, worldMouse + olc::vf2d(topBitPadding * 2 - xOffset, 0), FALSE, "decoderIn2", lastComponentId });
+					terminals.push_back({ lastTerminalId, worldMouse + olc::vf2d(topBitPadding * 2 - xOffset, 0), false, "decoderIn2", lastComponentId });
 					lastTerminalId++;
-					terminals.push_back({ lastTerminalId, worldMouse + olc::vf2d(topBitPadding * 3 - xOffset, 0), FALSE, "decoderIn3", lastComponentId });
+					terminals.push_back({ lastTerminalId, worldMouse + olc::vf2d(topBitPadding * 3 - xOffset, 0), false, "decoderIn3", lastComponentId });
 					lastTerminalId++;
-					terminals.push_back({ lastTerminalId, worldMouse + olc::vf2d(topBitPadding * 4 - xOffset, 0), FALSE, "decoderIn4", lastComponentId });
+					terminals.push_back({ lastTerminalId, worldMouse + olc::vf2d(topBitPadding * 4 - xOffset, 0), false, "decoderIn4", lastComponentId });
 					lastTerminalId++;
-					terminals.push_back({ lastTerminalId, worldMouse + olc::vf2d(topBitPadding * 5 - xOffset, 0), FALSE, "decoderIn5", lastComponentId });
+					terminals.push_back({ lastTerminalId, worldMouse + olc::vf2d(topBitPadding * 5 - xOffset, 0), false, "decoderIn5", lastComponentId });
 					lastTerminalId++;
-					terminals.push_back({ lastTerminalId, worldMouse + olc::vf2d(topBitPadding * 6 - xOffset, 0), FALSE, "decoderIn6", lastComponentId });
+					terminals.push_back({ lastTerminalId, worldMouse + olc::vf2d(topBitPadding * 6 - xOffset, 0), false, "decoderIn6", lastComponentId });
 					lastTerminalId++;
-					terminals.push_back({ lastTerminalId, worldMouse + olc::vf2d(topBitPadding * 7 - xOffset, 0), FALSE, "decoderIn7", lastComponentId });
+					terminals.push_back({ lastTerminalId, worldMouse + olc::vf2d(topBitPadding * 7 - xOffset, 0), false, "decoderIn7", lastComponentId });
 					lastTerminalId++;
-					terminals.push_back({ lastTerminalId, worldMouse + olc::vf2d(topBitPadding * 8 - xOffset, 0), FALSE, "decoderIn8", lastComponentId });
+					terminals.push_back({ lastTerminalId, worldMouse + olc::vf2d(topBitPadding * 8 - xOffset, 0), false, "decoderIn8", lastComponentId });
 					lastTerminalId++;
-					terminals.push_back({ lastTerminalId, worldMouse + olc::vf2d(topBitPadding * 9 - xOffset, 0), FALSE, "decoderIn9", lastComponentId });
+					terminals.push_back({ lastTerminalId, worldMouse + olc::vf2d(topBitPadding * 9 - xOffset, 0), false, "decoderIn9", lastComponentId });
 					lastTerminalId++;
 
 					// Decoder Out
-					terminals.push_back({ lastTerminalId, worldMouse + olc::vf2d(bitPadding, height), FALSE, "decoderOut1", lastComponentId });
+					terminals.push_back({ lastTerminalId, worldMouse + olc::vf2d(bitPadding, height), false, "decoderOut1", lastComponentId });
 					lastTerminalId++;
-					terminals.push_back({ lastTerminalId, worldMouse + olc::vf2d(bitPadding * 2, height), FALSE, "decoderOut2", lastComponentId });
+					terminals.push_back({ lastTerminalId, worldMouse + olc::vf2d(bitPadding * 2, height), false, "decoderOut2", lastComponentId });
 					lastTerminalId++;
-					terminals.push_back({ lastTerminalId, worldMouse + olc::vf2d(bitPadding * 3, height), FALSE, "decoderOut3", lastComponentId });
+					terminals.push_back({ lastTerminalId, worldMouse + olc::vf2d(bitPadding * 3, height), false, "decoderOut3", lastComponentId });
 					lastTerminalId++;
-					terminals.push_back({ lastTerminalId, worldMouse + olc::vf2d(bitPadding * 4, height), FALSE, "decoderOut4", lastComponentId });
+					terminals.push_back({ lastTerminalId, worldMouse + olc::vf2d(bitPadding * 4, height), false, "decoderOut4", lastComponentId });
 					lastTerminalId++;
-					terminals.push_back({ lastTerminalId, worldMouse + olc::vf2d(bitPadding * 5, height), FALSE, "decoderOut5", lastComponentId });
+					terminals.push_back({ lastTerminalId, worldMouse + olc::vf2d(bitPadding * 5, height), false, "decoderOut5", lastComponentId });
 					lastTerminalId++;
-					terminals.push_back({ lastTerminalId, worldMouse + olc::vf2d(bitPadding * 6, height), FALSE, "decoderOut6", lastComponentId });
+					terminals.push_back({ lastTerminalId, worldMouse + olc::vf2d(bitPadding * 6, height), false, "decoderOut6", lastComponentId });
 					lastTerminalId++;
-					terminals.push_back({ lastTerminalId, worldMouse + olc::vf2d(bitPadding * 7, height), FALSE, "decoderOut7", lastComponentId });
+					terminals.push_back({ lastTerminalId, worldMouse + olc::vf2d(bitPadding * 7, height), false, "decoderOut7", lastComponentId });
 					lastTerminalId++;
-					terminals.push_back({ lastTerminalId, worldMouse + olc::vf2d(bitPadding * 8, height), FALSE, "decoderOut8", lastComponentId });
+					terminals.push_back({ lastTerminalId, worldMouse + olc::vf2d(bitPadding * 8, height), false, "decoderOut8", lastComponentId });
 					lastTerminalId++;
-					terminals.push_back({ lastTerminalId, worldMouse + olc::vf2d(bitPadding * 9, height), FALSE, "decoderOut9", lastComponentId });
+					terminals.push_back({ lastTerminalId, worldMouse + olc::vf2d(bitPadding * 9, height), false, "decoderOut9", lastComponentId });
 					lastTerminalId++;
-					terminals.push_back({ lastTerminalId, worldMouse + olc::vf2d(bitPadding * 10, height), FALSE, "decoderOut10", lastComponentId });
+					terminals.push_back({ lastTerminalId, worldMouse + olc::vf2d(bitPadding * 10, height), false, "decoderOut10", lastComponentId });
 					lastTerminalId++;
-					terminals.push_back({ lastTerminalId, worldMouse + olc::vf2d(bitPadding * 11, height), FALSE, "decoderOut11", lastComponentId });
+					terminals.push_back({ lastTerminalId, worldMouse + olc::vf2d(bitPadding * 11, height), false, "decoderOut11", lastComponentId });
 					lastTerminalId++;
-					terminals.push_back({ lastTerminalId, worldMouse + olc::vf2d(bitPadding * 12, height), FALSE, "decoderOut12", lastComponentId });
+					terminals.push_back({ lastTerminalId, worldMouse + olc::vf2d(bitPadding * 12, height), false, "decoderOut12", lastComponentId });
 					lastTerminalId++;
-					terminals.push_back({ lastTerminalId, worldMouse + olc::vf2d(bitPadding * 13, height), FALSE, "decoderOut13", lastComponentId });
+					terminals.push_back({ lastTerminalId, worldMouse + olc::vf2d(bitPadding * 13, height), false, "decoderOut13", lastComponentId });
 					lastTerminalId++;
-					terminals.push_back({ lastTerminalId, worldMouse + olc::vf2d(bitPadding * 14, height), FALSE, "decoderOut14", lastComponentId });
+					terminals.push_back({ lastTerminalId, worldMouse + olc::vf2d(bitPadding * 14, height), false, "decoderOut14", lastComponentId });
 					lastTerminalId++;
-					terminals.push_back({ lastTerminalId, worldMouse + olc::vf2d(bitPadding * 15, height), FALSE, "decoderOut15", lastComponentId });
+					terminals.push_back({ lastTerminalId, worldMouse + olc::vf2d(bitPadding * 15, height), false, "decoderOut15", lastComponentId });
 					lastTerminalId++;
-					terminals.push_back({ lastTerminalId, worldMouse + olc::vf2d(bitPadding * 16, height), FALSE, "decoderOut16", lastComponentId });
+					terminals.push_back({ lastTerminalId, worldMouse + olc::vf2d(bitPadding * 16, height), false, "decoderOut16", lastComponentId });
 					lastTerminalId++;
-					terminals.push_back({ lastTerminalId, worldMouse + olc::vf2d(bitPadding * 17, height), FALSE, "decoderOut17", lastComponentId });
+					terminals.push_back({ lastTerminalId, worldMouse + olc::vf2d(bitPadding * 17, height), false, "decoderOut17", lastComponentId });
 					lastTerminalId++;
 				}
 
@@ -765,19 +765,19 @@ public:
 					olc::vf2d worldMouse = GetWorldMouse();
 
 					// Flags Write Enable
-					terminals.push_back({ lastTerminalId, worldMouse + olc::vf2d(width, height / 2), FALSE, "flagsRegWriteEnable", lastComponentId });
+					terminals.push_back({ lastTerminalId, worldMouse + olc::vf2d(width, height / 2), false, "flagsRegWriteEnable", lastComponentId });
 					lastTerminalId++;
 
 					// Flags Reg In
-					terminals.push_back({ lastTerminalId, worldMouse + olc::vf2d(bitPadding - xOffset, 0), FALSE, "flagsRegIn1", lastComponentId });
+					terminals.push_back({ lastTerminalId, worldMouse + olc::vf2d(bitPadding - xOffset, 0), false, "flagsRegIn1", lastComponentId });
 					lastTerminalId++;
-					terminals.push_back({ lastTerminalId, worldMouse + olc::vf2d(bitPadding * 2 - xOffset, 0), FALSE, "flagsRegIn2", lastComponentId });
+					terminals.push_back({ lastTerminalId, worldMouse + olc::vf2d(bitPadding * 2 - xOffset, 0), false, "flagsRegIn2", lastComponentId });
 					lastTerminalId++;
 
 					// Flags Reg Out
-					terminals.push_back({ lastTerminalId, worldMouse + olc::vf2d(bitPadding - xOffset, height), FALSE, "flagsRegOut1", lastComponentId });
+					terminals.push_back({ lastTerminalId, worldMouse + olc::vf2d(bitPadding - xOffset, height), false, "flagsRegOut1", lastComponentId });
 					lastTerminalId++;
-					terminals.push_back({ lastTerminalId, worldMouse + olc::vf2d(bitPadding * 2 - xOffset, height), FALSE, "flagsRegOut2", lastComponentId });
+					terminals.push_back({ lastTerminalId, worldMouse + olc::vf2d(bitPadding * 2 - xOffset, height), false, "flagsRegOut2", lastComponentId });
 					lastTerminalId++;
 				}
 
@@ -790,31 +790,31 @@ public:
 					olc::vf2d worldMouse = GetWorldMouse();
 
 					// Display In
-					terminals.push_back({ lastTerminalId, worldMouse + olc::vf2d(bitPadding, 0), FALSE, "displayIn8", lastComponentId });
+					terminals.push_back({ lastTerminalId, worldMouse + olc::vf2d(bitPadding, 0), false, "displayIn8", lastComponentId });
 					lastTerminalId++;
-					terminals.push_back({ lastTerminalId, worldMouse + olc::vf2d(bitPadding * 2, 0), FALSE, "displayIn7", lastComponentId });
+					terminals.push_back({ lastTerminalId, worldMouse + olc::vf2d(bitPadding * 2, 0), false, "displayIn7", lastComponentId });
 					lastTerminalId++;
-					terminals.push_back({ lastTerminalId, worldMouse + olc::vf2d(bitPadding * 3, 0), FALSE, "displayIn6", lastComponentId });
+					terminals.push_back({ lastTerminalId, worldMouse + olc::vf2d(bitPadding * 3, 0), false, "displayIn6", lastComponentId });
 					lastTerminalId++;
-					terminals.push_back({ lastTerminalId, worldMouse + olc::vf2d(bitPadding * 4, 0), FALSE, "displayIn5", lastComponentId });
+					terminals.push_back({ lastTerminalId, worldMouse + olc::vf2d(bitPadding * 4, 0), false, "displayIn5", lastComponentId });
 					lastTerminalId++;
-					terminals.push_back({ lastTerminalId, worldMouse + olc::vf2d(bitPadding * 5, 0), FALSE, "displayIn4", lastComponentId });
+					terminals.push_back({ lastTerminalId, worldMouse + olc::vf2d(bitPadding * 5, 0), false, "displayIn4", lastComponentId });
 					lastTerminalId++;
-					terminals.push_back({ lastTerminalId, worldMouse + olc::vf2d(bitPadding * 6, 0), FALSE, "displayIn3", lastComponentId });
+					terminals.push_back({ lastTerminalId, worldMouse + olc::vf2d(bitPadding * 6, 0), false, "displayIn3", lastComponentId });
 					lastTerminalId++;
-					terminals.push_back({ lastTerminalId, worldMouse + olc::vf2d(bitPadding * 7, 0), FALSE, "displayIn2", lastComponentId });
+					terminals.push_back({ lastTerminalId, worldMouse + olc::vf2d(bitPadding * 7, 0), false, "displayIn2", lastComponentId });
 					lastTerminalId++;
-					terminals.push_back({ lastTerminalId, worldMouse + olc::vf2d(bitPadding * 8, 0), FALSE, "displayIn1", lastComponentId });
+					terminals.push_back({ lastTerminalId, worldMouse + olc::vf2d(bitPadding * 8, 0), false, "displayIn1", lastComponentId });
 					lastTerminalId++;
 
 					// Display Write Enable
-					terminals.push_back({ lastTerminalId, worldMouse + olc::vf2d(width, height / 2), FALSE, "displayWriteEnable", lastComponentId });
+					terminals.push_back({ lastTerminalId, worldMouse + olc::vf2d(width, height / 2), false, "displayWriteEnable", lastComponentId });
 					lastTerminalId++;
 				}
 
 				if (inventoryComponents[activeInventoryComponent] == "BUFFER")
 				{
-					terminals.push_back({ lastTerminalId, GetWorldMouse(), FALSE, "buffer", lastComponentId });
+					terminals.push_back({ lastTerminalId, GetWorldMouse(), false, "buffer", lastComponentId });
 					lastTerminalId++;
 				}
 
@@ -838,13 +838,13 @@ public:
 					else if (currentBusColumn == 8)
 						termType = "bus8";
 					
-					terminals.push_back({ lastTerminalId, GetWorldMouse(), FALSE, termType, lastComponentId });
+					terminals.push_back({ lastTerminalId, GetWorldMouse(), false, termType, lastComponentId });
 					lastTerminalId++;
 				}
 
 				if (inventoryComponents[activeInventoryComponent] == "LED")
 				{
-					terminals.push_back({ lastTerminalId, GetWorldMouse(), FALSE, "buffer", lastComponentId });
+					terminals.push_back({ lastTerminalId, GetWorldMouse(), false, "buffer", lastComponentId });
 					lastTerminalId++;
 				}
 
@@ -856,13 +856,13 @@ public:
 			}
 
 
-			redrawRequired = TRUE;
+			redrawRequired = true;
 		}
 
 		if (GetKey(olc::DEL).bReleased)
 		{
 			deleteClosest();
-			redrawRequired = TRUE;
+			redrawRequired = true;
 		}
 
 
@@ -873,12 +873,12 @@ public:
 		{
 			Save();
 			Load();
-			redrawRequired = TRUE;
+			redrawRequired = true;
 		}
 
 		if (GetMouse(1).bReleased)
 		{
-			bool needsNotOut = FALSE;
+			bool needsNotOut = false;
 			int transistorId = 0;
 
 			if (!selectedTerminalA)
@@ -929,12 +929,12 @@ public:
 
 						if (terminal.type == "transCollector")
 						{
-							needsNotOut = TRUE;
+							needsNotOut = true;
 							transistorId = terminal.componentId;
 						}
 						else
 						{
-							needsNotOut = FALSE;
+							needsNotOut = false;
 							transistorId = 0;
 						}
 					}
@@ -971,12 +971,12 @@ public:
 				if (needsNotOut)
 				{
 					olc::vi2d notOutPos = calculateNotOut(selectedTerminalAPos, selectedTerminalBPos);
-					terminals.push_back({ lastTerminalId, notOutPos, FALSE, "transNotOut", transistorId });
+					terminals.push_back({ lastTerminalId, notOutPos, false, "transNotOut", transistorId });
 					lastTerminalId++;
 				}
 
 				updateSourceConnections();
-				updateSimulation = TRUE;
+				updateSimulation = true;
 
 				selectedTerminalA = 0;
 				selectedTerminalB = 0;
@@ -984,7 +984,7 @@ public:
 				selectedTerminalBPos = olc::vi2d(0, 0);
 			}
 
-			redrawRequired = TRUE;
+			redrawRequired = true;
 		}
 
 		if (GetKey(olc::Key::SPACE).bReleased)
@@ -994,7 +994,7 @@ public:
 			else
 				activeInventoryComponent = 0;
 
-			redrawRequired = TRUE;
+			redrawRequired = true;
 		}
 
 		if (GetKey(olc::Key::A).bReleased)
@@ -1004,8 +1004,8 @@ public:
 			else
 				selectedRamAddress = 0;
 
-			updateSimulation = TRUE;
-			redrawRequired = TRUE;
+			updateSimulation = true;
+			redrawRequired = true;
 		}
 
 		if (GetKey(olc::Key::N).bReleased)
@@ -1015,21 +1015,21 @@ public:
 			else
 				activeInventoryModule = 0;
 
-			redrawRequired = TRUE;
+			redrawRequired = true;
 		}
 
 		if (GetKey(olc::Key::M).bReleased)
 		{
 			if (!placingModule)
-				placingModule = TRUE;
+				placingModule = true;
 			else
-				placingModule = FALSE;
+				placingModule = false;
 
-			redrawRequired = TRUE;
+			redrawRequired = true;
 		}
 
 		if (placingModule)
-			redrawRequired = TRUE;
+			redrawRequired = true;
 
 		if (GetKey(olc::Key::B).bReleased)
 		{
@@ -1038,7 +1038,7 @@ public:
 			else
 				currentBusColumn = 1;
 
-			redrawRequired = TRUE;
+			redrawRequired = true;
 		}
 
 		olc::vi2d sourceScreenPosition;
@@ -1087,7 +1087,7 @@ public:
 			}
 
 			DrawStrings();
-			redrawRequired = FALSE;
+			redrawRequired = false;
 		}
 
 		return !(GetKey(olc::ESCAPE).bPressed);
@@ -1095,11 +1095,11 @@ public:
 
 private:
 	olc::panzoom pz;
-	bool clockState = FALSE;
+	bool clockState = false;
 	int clockSpeed = 0;
 	int clockTicks = 0;
-	bool risingEdge = FALSE;
-	bool fallingEdge = FALSE;
+	bool risingEdge = false;
+	bool fallingEdge = false;
 	std::vector<Component> components;
 	std::vector<Connection> connections;
 	std::vector<Connection*> sourceConnections;
@@ -1128,7 +1128,7 @@ private:
 		"RAM",
 	};
 	int activeInventoryModule = 0;
-	bool placingModule = FALSE;
+	bool placingModule = false;
 	std::vector<std::vector<olc::vi2d>> moduleCoordinates = {
 		{{-53, -88}, {60, -88}, {-53, 76}, {60, 76}},         // AND
 		{{-101, -48}, {97, -48}, {-101, 51}, {97, 51}},       // OR
@@ -1151,13 +1151,13 @@ private:
 		"REGBUS",
 		"REGS",
 	};
-	bool simulationPaused = FALSE;
-	bool updateSimulation = FALSE;
-	bool componentBuilderMode = FALSE;
-	bool redrawRequired = TRUE;
-	bool ramFixMode = TRUE;
-	bool showInfo = FALSE;
-	bool startZooming = FALSE;
+	bool simulationPaused = false;
+	bool updateSimulation = false;
+	bool componentBuilderMode = false;
+	bool redrawRequired = true;
+	bool ramFixMode = true;
+	bool showInfo = false;
+	bool startZooming = false;
 	int aluA = 0;
 	int aluB = 0;
 	int aluO = 0;
@@ -1170,8 +1170,8 @@ private:
 	std::vector<int> flagsRegContents = { 0, 0 };
 	int counterValue = 0;
 	int microcounterValue = 0;
-	bool counterCounted = FALSE;
-	bool microcounterCounted = FALSE;
+	bool counterCounted = false;
+	bool microcounterCounted = false;
 
 	void Save()
 	{
@@ -1288,7 +1288,7 @@ private:
 			terminals.push_back({
 				stoi(rawTerminalId) + lastTerminalId,
 				olc::vi2d(stoi(rawTerminalPosX), stoi(rawTerminalPosY)) + GetWorldMouse(),
-				FALSE,
+				false,
 				rawTerminalType,
 				stoi(rawTerminalComponentId) + lastComponentId,
 				});
@@ -1404,14 +1404,14 @@ private:
 			terminals.push_back({
 				stoi(rawTerminalId),
 				olc::vi2d({ stoi(rawTerminalPosX), stoi(rawTerminalPosY) }),
-				FALSE,
+				false,
 				rawTerminalType,
 				stoi(rawTerminalComponentId),
 				});
 		}
 
 		updateSourceConnections();
-		updateSimulation = TRUE;
+		updateSimulation = true;
 	}
 
 	void DrawComponents()
@@ -2126,10 +2126,10 @@ private:
 
 	Terminal* simulateTransistor(int id)
 	{
-		bool baseState = FALSE;
-		bool collectorState = FALSE;
-		bool baseFound = FALSE;
-		bool collectorFound = FALSE;
+		bool baseState = false;
+		bool collectorState = false;
+		bool baseFound = false;
+		bool collectorFound = false;
 		Terminal* emitterTerminal = nullptr;
 		Terminal* notOutTerminal = nullptr;
 
@@ -2137,18 +2137,18 @@ private:
 		{
 			if (terminal.componentId == id && terminal.type == "transCollector")
 			{
-				collectorFound = TRUE;
+				collectorFound = true;
 
 				if (terminal.state)
-					collectorState = TRUE;
+					collectorState = true;
 			}
 
 			if (terminal.componentId == id && terminal.type == "transBase")
 			{
-				baseFound = TRUE;
+				baseFound = true;
 
 				if (terminal.state)
-					baseState = TRUE;
+					baseState = true;
 			}
 
 			if (terminal.componentId == id && terminal.type == "transEmitter")
@@ -2177,10 +2177,10 @@ private:
 
 	void simulateGatedLatch(int id)
 	{
-		bool dataInState = FALSE;
-		bool writeEnableState = FALSE;
-		bool dataInFound = FALSE;
-		bool writeEnableFound = FALSE;
+		bool dataInState = false;
+		bool writeEnableState = false;
+		bool dataInFound = false;
+		bool writeEnableFound = false;
 
 		Terminal* dataOutTerminal = nullptr;
 
@@ -2188,18 +2188,18 @@ private:
 		{
 			if (terminal.componentId == id && terminal.type == "gatedIn")
 			{
-				dataInFound = TRUE;
+				dataInFound = true;
 
 				if (terminal.state)
-					dataInState = TRUE;
+					dataInState = true;
 			}
 
 			if (terminal.componentId == id && terminal.type == "gatedWriteEnable")
 			{
-				writeEnableFound = TRUE;
+				writeEnableFound = true;
 
 				if (terminal.state)
-					writeEnableState = TRUE;
+					writeEnableState = true;
 			}
 
 			if (terminal.componentId == id && terminal.type == "gatedOut")
@@ -2340,25 +2340,25 @@ private:
 			if (aluO > 255)
 			{
 				aluO = 255;
-				carryFlagOut->state = TRUE;
+				carryFlagOut->state = true;
 			}
 			else
 			{
 				if (subBit && subBit->state && b == 1 && a != 0)
-					carryFlagOut->state = TRUE;
+					carryFlagOut->state = true;
 				else
-					carryFlagOut->state = FALSE;
+					carryFlagOut->state = false;
 			}
 			
 		}
 
-		bool isNegative = FALSE;
+		bool isNegative = false;
 		int aluOTwosComplement = 0;
 			
 
 		if (aluO < 0)
 		{
-			isNegative = TRUE;
+			isNegative = true;
 			aluOTwosComplement = -aluO - 1;
 		}
 			
@@ -2565,21 +2565,21 @@ private:
 		{
 			if (aluO > 255)
 			{
-				carryFlagOut->state = TRUE;
+				carryFlagOut->state = true;
 			}
 			else
 			{
-				carryFlagOut->state = FALSE;
+				carryFlagOut->state = false;
 			}
 
 		}
 
-		bool isNegative = FALSE;
+		bool isNegative = false;
 		int aluOTwosComplement = 0;
 
 		if (aluO < 0)
 		{
-			isNegative = TRUE;
+			isNegative = true;
 			aluOTwosComplement = -aluO - 1;
 		}
 
@@ -2823,7 +2823,7 @@ private:
 				else
 					counterValue = 0;
 
-				counterCounted = TRUE;
+				counterCounted = true;
 			}
 		}
 
@@ -2833,36 +2833,36 @@ private:
 		{
 			if (outputBinary[3] == '1')
 			{
-				outputBit1->state = TRUE;
+				outputBit1->state = true;
 			}
 			else
 			{
-				outputBit1->state = FALSE;
+				outputBit1->state = false;
 			}
 		}
 		
 		if (outputBit2)
 		{
 			if (outputBinary[2] == '1')
-				outputBit2->state = TRUE;
+				outputBit2->state = true;
 			else
-				outputBit2->state = FALSE;
+				outputBit2->state = false;
 		}
 
 		if (outputBit3)
 		{
 			if (outputBinary[1] == '1')
-				outputBit3->state = TRUE;
+				outputBit3->state = true;
 			else
-				outputBit3->state = FALSE;
+				outputBit3->state = false;
 		}
 		
 		if (outputBit4)
 		{
 			if (outputBinary[0] == '1')
-				outputBit4->state = TRUE;
+				outputBit4->state = true;
 			else
-				outputBit4->state = FALSE;
+				outputBit4->state = false;
 		}
 	}
 
@@ -2906,7 +2906,7 @@ private:
 			else
 				microcounterValue = 0;
 			
-			microcounterCounted = TRUE;
+			microcounterCounted = true;
 		}
 
 		std::string outputBinary = decimalToBinaryString(microcounterValue, 3);
@@ -3030,7 +3030,7 @@ private:
 
 	std::string decodeMicroinstruction(std::string instructionString, std::string stepString, std::string flagsString)
 	{
-		bool debugMode = FALSE;
+		bool debugMode = false;
 
 		// Universal - Memory address to program counter.
 		if (stepString == "000")      
@@ -3478,7 +3478,7 @@ private:
 		double smallestDistance = 0.00;
 		int closestConnectionId = 0;
 		int closestConnectionNotOutTerminalId = 0;
-		bool noConnectionDeleted = TRUE;
+		bool noConnectionDeleted = true;
 
 		for (auto connection : connections)
 		{
@@ -3516,7 +3516,7 @@ private:
 				}
 			}
 
-			noConnectionDeleted = FALSE;
+			noConnectionDeleted = false;
 		}
 
 		if (noConnectionDeleted)
@@ -3538,37 +3538,37 @@ private:
 
 			if (smallestDistance < 10.00)
 			{
-				bool terminalsRemaining = TRUE;
+				bool terminalsRemaining = true;
 
 				while (terminalsRemaining)
 				{
-					bool terminalsFound = FALSE;
+					bool terminalsFound = false;
 					for (auto terminal : terminals)
 					{
 						if (terminal.componentId == closestId)
-							terminalsFound = TRUE;
+							terminalsFound = true;
 					}
 
 					if (!terminalsFound)
-						terminalsRemaining = FALSE;
+						terminalsRemaining = false;
 
 					for (auto iter = terminals.begin(); iter != terminals.end(); ++iter)
 					{
 						if (iter->componentId == closestId)
 						{
-							bool connectionsRemaining = TRUE;
+							bool connectionsRemaining = true;
 
 							while (connectionsRemaining)
 							{
-								bool connectionsFound = FALSE;
+								bool connectionsFound = false;
 								for (auto connection : connections)
 								{
 									if (connection.terminalA == iter->id || connection.terminalB == iter->id)
-										connectionsFound = TRUE;
+										connectionsFound = true;
 								}
 
 								if (!connectionsFound)
-									connectionsRemaining = FALSE;
+									connectionsRemaining = false;
 
 								for (auto connIter = connections.begin(); connIter != connections.end(); ++connIter)
 								{
@@ -3612,7 +3612,7 @@ private:
 		}
 
 		updateSourceConnections();
-		updateSimulation = TRUE;
+		updateSimulation = true;
 	}
 
 	void programRAM()
@@ -3669,7 +3669,7 @@ private:
 
 		if (clockHaltTerminal && clockHaltTerminal->state)
 		{
-			clockState = FALSE;
+			clockState = false;
 			clockSpeed = 0;
 			clockTicks = 0;
 		}
@@ -3683,13 +3683,13 @@ private:
 			if (clockTicks >= clockSpeed * 100 || clockSpeed == 1)
 			{
 				if (clockState)
-					clockState = FALSE;
+					clockState = false;
 				else
-					clockState = TRUE;
+					clockState = true;
 
 				clockTicks = 0;
-				updateSimulation = TRUE;
-				redrawRequired = TRUE;
+				updateSimulation = true;
+				redrawRequired = true;
 			}
 		}
 		else
@@ -3697,12 +3697,12 @@ private:
 			if (GetKey(olc::Key::O).bReleased)
 			{
 				if (clockState)
-					clockState = FALSE;
+					clockState = false;
 				else
-					clockState = TRUE;
+					clockState = true;
 
-				updateSimulation = TRUE;
-				redrawRequired = TRUE;
+				updateSimulation = true;
+				redrawRequired = true;
 			}
 		}
 		
@@ -3711,17 +3711,17 @@ private:
 		bool oldFallingEdge = fallingEdge;
 
 		if (!oldState && newState)
-			risingEdge = TRUE;
+			risingEdge = true;
 		else
-			risingEdge = FALSE;
+			risingEdge = false;
 
 		if (oldState && !newState)
-			fallingEdge = TRUE;
+			fallingEdge = true;
 		else
-			fallingEdge = FALSE;
+			fallingEdge = false;
 
 		if (oldRisingEdge != risingEdge || oldFallingEdge != fallingEdge)
-			redrawRequired = TRUE;
+			redrawRequired = true;
 	}
 
 	std::vector<std::vector<int>> loadProgram(std::string programName)
@@ -3898,7 +3898,7 @@ private:
 int main()
 {
 	Viscom vc;
-	if (vc.Construct(1600, 900, 1, 1, FALSE))
+	if (vc.Construct(1600, 900, 1, 1, false))
 		vc.Start();
 
 	return 0;

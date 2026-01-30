@@ -51,7 +51,7 @@
 
 #ifndef OLC_PGEX_PANZOOM_H
 #define OLC_PGEX_PANZOOM_H
-#include <olcPixelGameEngine.h>
+#include "olcPixelGameEngine.h"
 
 // definition
 namespace olc
